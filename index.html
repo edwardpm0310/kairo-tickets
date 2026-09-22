@@ -51,6 +51,7 @@
     .acciones-principales { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
     .btn { flex: 1; min-width: 120px; padding: 12px; border-radius: 8px; border: none; font-size: 13px; font-weight: 700; cursor: pointer; color: white; transition: all 0.2s; }
     .btn:hover { transform: translateY(-1px); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .btn-aprobar { background: #27ae60; }
     .btn-rechazar { background: #e74c3c; }
     .btn-completar { background: #3498db; }
@@ -64,6 +65,8 @@
     .loading { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; color: #95a5a6; }
     .spinner { width: 30px; height: 30px; border: 3px solid #e0e6ed; border-top-color: #3498db; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 12px; }
     @keyframes spin { to { transform: rotate(360deg); } }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #2c3e50; color: white; padding: 12px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; opacity: 0; transition: opacity 0.3s; }
+    .toast.activo { opacity: 1; }
   </style>
 </head>
 <body>
@@ -103,6 +106,8 @@
       </div>
     </div>
   </div>
+  
+  <div class="toast" id="toast"></div>
 
   <script>
     const API_URL = 'https://script.google.com/macros/s/AKfycbxvEvv1VAEaAr_fZ2OZVbQ1-Ww4Ywv3OUKwXjOEth2K3Zxfk8Il8A2jVoZsFgqyToxK/exec';
@@ -111,6 +116,14 @@
     let todosLosTickets = [];
     let tabActual = 'Pendiente';
     let ticketSeleccionado = null;
+    let procesando = false;
+    
+    function mostrarToast(mensaje) {
+      const toast = document.getElementById('toast');
+      toast.textContent = mensaje;
+      toast.classList.add('activo');
+      setTimeout(() => toast.classList.remove('activo'), 3000);
+    }
     
     function cargarTickets() {
       document.getElementById('sidebar-lista').innerHTML = 
@@ -127,6 +140,14 @@
       if (todosLosTickets.error) { mostrarError({ message: todosLosTickets.error }); return; }
       actualizarBadges();
       renderizarLista();
+      
+      if (ticketSeleccionado) {
+        const actualizado = todosLosTickets.find(t => t.fila === ticketSeleccionado.fila);
+        if (actualizado) {
+          ticketSeleccionado = actualizado;
+          renderizarDetalle();
+        }
+      }
     }
     
     function mostrarError(error) {
@@ -228,10 +249,31 @@
     }
     
     function cambiarEstado(estado) {
-      if (!ticketSeleccionado) return;
-      fetch(API_URL + '?key=' + API_KEY + '&action=update&fila=' + ticketSeleccionado.fila + '&estado=' + estado)
-        .then(() => cargarTickets())
-        .catch(e => alert('Error: ' + e.message));
+      if (!ticketSeleccionado || procesando) return;
+      
+      procesando = true;
+      mostrarToast('⏳ Actualizando...');
+      
+      const url = API_URL + '?key=' + API_KEY + 
+                  '&action=update' + 
+                  '&fila=' + ticketSeleccionado.fila + 
+                  '&estado=' + encodeURIComponent(estado);
+      
+      fetch(url)
+        .then(response => response.json())
+        .then(data => {
+          if (data.exito) {
+            mostrarToast('✅ Estado actualizado a: ' + estado);
+            cargarTickets();
+          } else {
+            mostrarToast('❌ Error: ' + (data.error || 'Desconocido'));
+          }
+          procesando = false;
+        })
+        .catch(error => {
+          mostrarToast('❌ Error: ' + error.message);
+          procesando = false;
+        });
     }
     
     cargarTickets();
