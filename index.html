@@ -161,6 +161,50 @@
       .btn-volver {
         display: inline-flex !important;
       }
+      
+      /* ===== MEJORAS MÓVIL: tipografía y tabs ===== */
+      
+      /* Fuentes más grandes y legibles */
+      .ticket-titulo { font-size: 15px; }
+      .menu-item { font-size: 14px; padding: 12px 16px; }
+      .detalle-titulo { font-size: 18px; }
+      .seccion-contenido { font-size: 15px; }
+      .detalle-meta { font-size: 13px; }
+      
+      /* Inputs con 16px para evitar zoom en iOS */
+      input, textarea, select, button {
+        font-size: 16px !important;
+      }
+      
+      /* Tabs horizontales en el menú */
+      .menu-vertical {
+        display: flex;
+        overflow-x: auto;
+        overflow-y: hidden;
+        gap: 8px;
+        padding: 10px 8px;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+      }
+      .menu-vertical::-webkit-scrollbar { display: none; }
+      
+      .menu-item {
+        flex-shrink: 0;
+        min-width: fit-content;
+        border-radius: 20px;
+        padding: 8px 16px;
+        margin-bottom: 0;
+        white-space: nowrap;
+      }
+      
+      .menu-item-izq { gap: 6px; }
+      .menu-item-icono { font-size: 14px; }
+      
+      .menu-item-badge {
+        padding: 2px 6px;
+        font-size: 10px;
+        min-width: 20px;
+      }
     }
   </style>
 </head>
@@ -244,6 +288,24 @@
     let cargando = false;
     let archivoEvidencia = null;
     
+    // ===== CACHÉ LOCAL =====
+    function guardarCache(tickets) {
+      try {
+        localStorage.setItem('kairo_tickets_cache', JSON.stringify({
+          data: tickets,
+          timestamp: Date.now()
+        }));
+      } catch (e) { console.warn('No se pudo guardar caché'); }
+    }
+    
+    function leerCache() {
+      try {
+        const raw = localStorage.getItem('kairo_tickets_cache');
+        if (!raw) return null;
+        return JSON.parse(raw);
+      } catch (e) { return null; }
+    }
+    
     function mostrarToast(mensaje, tipo) {
       const toast = document.getElementById('toast');
       toast.textContent = mensaje;
@@ -255,13 +317,24 @@
     function cargarTickets() {
       if (cargando) return;
       
+      // ✅ Mostrar caché al instante (si existe)
+      const cache = leerCache();
+      if (cache && cache.data && todosLosTickets.length === 0) {
+        todosLosTickets = cache.data;
+        actualizarBadges();
+        renderizarLista();
+      }
+      
       cargando = true;
       const btnRefresh = document.getElementById('btn-refresh');
       btnRefresh.disabled = true;
       btnRefresh.textContent = '⏳';
       
-      document.getElementById('sidebar-lista').innerHTML = 
-        '<div class="loading"><div class="spinner"></div><div>Cargando...</div></div>';
+      // Solo mostrar spinner si NO hay caché
+      if (!cache || todosLosTickets.length === 0) {
+        document.getElementById('sidebar-lista').innerHTML = 
+          '<div class="loading"><div class="spinner"></div><div>Cargando...</div></div>';
+      }
       
       fetch(API_URL + '?key=' + API_KEY)
         .then(response => response.text())
@@ -269,15 +342,20 @@
           try {
             const data = JSON.parse(text);
             mostrarTickets(data);
+            if (Array.isArray(data)) guardarCache(data);
           } catch (e) {
-            mostrarError({ message: 'Respuesta inválida' });
+            if (!cache || todosLosTickets.length === 0) {
+              mostrarError({ message: 'Respuesta inválida' });
+            }
           }
           cargando = false;
           btnRefresh.disabled = false;
           btnRefresh.textContent = '🔄';
         })
         .catch(error => {
-          mostrarError({ message: error.message });
+          if (!cache || todosLosTickets.length === 0) {
+            mostrarError({ message: error.message });
+          }
           cargando = false;
           btnRefresh.disabled = false;
           btnRefresh.textContent = '🔄';
@@ -480,6 +558,7 @@
             const data = JSON.parse(text);
             if (data.exito) {
               mostrarToast('✅ Estado actualizado: ' + estado, 'exito');
+              guardarCache(todosLosTickets);
               setTimeout(() => cargarTickets(), 500);
             } else {
               ticketSeleccionado.estado = ticketAnterior;
@@ -684,13 +763,22 @@
         });
     }
     
+    // ===== INICIO =====
     cargarTickets();
     
+    // Auto-refresh: cada 3 min si la pestaña está visible
     setInterval(() => {
-      if (!procesando && !cargando) {
+      if (!procesando && !cargando && document.visibilityState === 'visible') {
         cargarTickets();
       }
-    }, 60000);
+    }, 180000);
+    
+    // Refrescar al volver a la pestaña
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && !procesando && !cargando) {
+        cargarTickets();
+      }
+    });
   </script>
 </body>
 </html>
