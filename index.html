@@ -48,8 +48,9 @@
     .detalle-meta-item { display: flex; align-items: center; gap: 6px; }
     .detalle-body { flex: 1; overflow-y: auto; padding: 24px; }
     .seccion { background: white; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
-    .seccion-titulo { font-size: 11px; font-weight: 700; color: #95a5a6; text-transform: uppercase; margin-bottom: 12px; }
+    .seccion-titulo { font-size: 11px; font-weight: 700; color: #95a5a6; text-transform: uppercase; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
     .seccion-contenido { font-size: 14px; color: #34495e; line-height: 1.6; }
+    .nota-admin-bloque { background: #fef9e7; border-left: 3px solid #f1c40f; padding: 12px 16px; border-radius: 6px; margin-top: 8px; }
     .evidencia-link { display: inline-flex; align-items: center; gap: 6px; color: #3498db; text-decoration: none; font-weight: 600; font-size: 13px; }
     .evidencia-link:hover { text-decoration: underline; }
     .detalle-footer { background: white; padding: 20px 24px; border-top: 1px solid #e0e6ed; }
@@ -62,7 +63,8 @@
     .btn-completar { background: #3498db; }
     .btn-reabrir { background: #f39c12; }
     .acciones-secundarias { display: flex; gap: 8px; }
-    .btn-secundario { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #e0e6ed; background: white; color: #5a6c7d; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .btn-secundario { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #e0e6ed; background: white; color: #5a6c7d; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn-secundario:hover { border-color: #3498db; color: #3498db; }
     .vacio { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #95a5a6; text-align: center; padding: 40px; }
     .vacio-icono { font-size: 64px; margin-bottom: 16px; opacity: 0.5; }
     .vacio-texto { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
@@ -76,8 +78,6 @@
     .toast.error { background: #e74c3c; }
     .btn-cargando { position: relative; color: transparent !important; }
     .btn-cargando::after { content: ''; position: absolute; top: 50%; left: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
-    
-    /* Modal */
     .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 100; }
     .modal-overlay.activo { display: flex; }
     .modal { background: white; border-radius: 16px; padding: 24px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
@@ -88,6 +88,8 @@
     .modal-acciones { display: flex; gap: 8px; }
     .preview-img { max-width: 100%; max-height: 200px; border-radius: 8px; margin-bottom: 16px; display: none; }
     .preview-img.activo { display: block; }
+    .btn-mini { background: #f0f3f7; color: #5a6c7d; border: none; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+    .btn-mini:hover { background: #e0e6ed; }
   </style>
 </head>
 <body>
@@ -135,23 +137,32 @@
 
   <div class="modal-overlay" id="modal-evidencia">
     <div class="modal">
-      <h2>📎 Subir evidencia</h2>
-      <p>Adjunta una imagen como comprobante de que completaste el ticket</p>
-      
+      <h2>✔️ Completar ticket</h2>
+      <p>Puedes adjuntar una imagen como comprobante (opcional)</p>
       <input type="file" id="input-evidencia" accept="image/*" onchange="previewImagen(event)">
       <img id="preview-img" class="preview-img" alt="Preview">
-      
       <textarea id="notas-admin" placeholder="Notas adicionales (opcional)"></textarea>
-      
       <div class="modal-acciones">
-        <button class="btn btn-completar" id="btn-subir" onclick="confirmarEvidencia()">📤 Subir y completar</button>
+        <button class="btn btn-completar" id="btn-subir" onclick="confirmarEvidencia()">📤 Completar</button>
         <button class="btn-secundario" onclick="cerrarModal()">Cancelar</button>
       </div>
     </div>
   </div>
 
+  <div class="modal-overlay" id="modal-nota">
+    <div class="modal">
+      <h2>📝 Nota de administrador</h2>
+      <p>Escribe una nota interna sobre este ticket (solo visible para ti)</p>
+      <textarea id="input-nota" placeholder="Ej: El paciente ya fue atendido antes, requiere seguimiento especial..." style="min-height: 120px;"></textarea>
+      <div class="modal-acciones">
+        <button class="btn btn-completar" id="btn-guardar-nota" onclick="guardarNota()">💾 Guardar nota</button>
+        <button class="btn-secundario" onclick="cerrarModalNota()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
   <script>
-    const API_URL = 'https://script.google.com/macros/s/AKfycbyUaEecyHa4W4-NlIYV4ePoLLbdehkDpliYUMNL2A1CrfSbesdLYhWlusQO5jRmsg4/exec';
+        const API_URL = 'https://script.google.com/macros/s/AKfycbzisyJ2AAbAGU0veh2P3dsHz8K87HyYgpy7QspWme-Qsh4X7yoxdj4dZVlk71zmIeyz/exec';
     const API_KEY = 'kairo_secret_2026_xyz123';
     
     let todosLosTickets = [];
@@ -259,7 +270,7 @@
       contenedor.innerHTML = filtrados.map(ticket => {
         const p = obtenerPrioridad(ticket.urgencia);
         const sel = ticketSeleccionado && ticketSeleccionado.fila === ticket.fila;
-        return `<div class="ticket-item prioridad-${p} ${sel ? 'seleccionado' : ''}" onclick="seleccionarTicket(${ticket.fila})"><div class="ticket-titulo prioridad-${p}">${ticket.solicitud}</div></div>`;
+        return '<div class="ticket-item prioridad-' + p + ' ' + (sel ? 'seleccionado' : '') + '" onclick="seleccionarTicket(' + ticket.fila + ')"><div class="ticket-titulo prioridad-' + p + '">' + ticket.solicitud + '</div></div>';
       }).join('');
     }
     
@@ -270,12 +281,12 @@
     }
     
     function renderizarDetalleVacio() {
-      document.getElementById('detalle').innerHTML = `
-        <div class="vacio">
-          <div class="vacio-icono">👈</div>
-          <div class="vacio-texto">Selecciona un ticket</div>
-          <div class="vacio-subtexto">Elige una solicitud de la lista</div>
-        </div>`;
+      document.getElementById('detalle').innerHTML = 
+        '<div class="vacio">' +
+          '<div class="vacio-icono">👈</div>' +
+          '<div class="vacio-texto">Selecciona un ticket</div>' +
+          '<div class="vacio-subtexto">Elige una solicitud de la lista</div>' +
+        '</div>';
     }
     
     function renderizarDetalle() {
@@ -287,49 +298,63 @@
       
       let evidenciaHtml = '';
       if (t.evidencia) {
-        evidenciaHtml = `
-          <div class="seccion">
-            <div class="seccion-titulo">📎 Evidencia</div>
-            <div class="seccion-contenido">
-              <a href="${t.evidencia}" target="_blank" class="evidencia-link">🔗 Ver evidencia en Drive</a>
-            </div>
-          </div>`;
+        evidenciaHtml = 
+          '<div class="seccion">' +
+            '<div class="seccion-titulo">📎 Evidencia</div>' +
+            '<div class="seccion-contenido">' +
+              '<a href="' + t.evidencia + '" target="_blank" class="evidencia-link">🔗 Ver evidencia en Drive</a>' +
+            '</div>' +
+          '</div>';
+      }
+      
+      let notaAdminHtml = '';
+      if (t.notasAdmin) {
+        notaAdminHtml = 
+          '<div class="seccion">' +
+            '<div class="seccion-titulo">' +
+              '<span>📝 Nota de administrador</span>' +
+              '<button class="btn-mini" onclick="abrirModalNota()">✏️ Editar</button>' +
+            '</div>' +
+            '<div class="nota-admin-bloque">' + t.notasAdmin + '</div>' +
+          '</div>';
       }
       
       let acciones = '';
       if (t.estado === 'Pendiente') {
-        acciones = `<button class="btn btn-aprobar" onclick="cambiarEstado('Aprobado', this)">✅ Aprobar</button><button class="btn btn-rechazar" onclick="cambiarEstado('Rechazado', this)">❌ Rechazar</button>`;
+        acciones = '<button class="btn btn-aprobar" onclick="cambiarEstado(\'Aprobado\', this)">✅ Aprobar</button><button class="btn btn-rechazar" onclick="cambiarEstado(\'Rechazado\', this)">❌ Rechazar</button>';
       } else if (t.estado === 'Aprobado') {
-        acciones = `<button class="btn btn-completar" onclick="abrirModalEvidencia()">✔️ Completar</button><button class="btn btn-rechazar" onclick="cambiarEstado('Rechazado', this)">❌ Rechazar</button><button class="btn btn-reabrir" onclick="cambiarEstado('Pendiente', this)">🔄 Reabrir</button>`;
+        acciones = '<button class="btn btn-completar" onclick="abrirModalEvidencia()">✔️ Completar</button><button class="btn btn-rechazar" onclick="cambiarEstado(\'Rechazado\', this)">❌ Rechazar</button><button class="btn btn-reabrir" onclick="cambiarEstado(\'Pendiente\', this)">🔄 Reabrir</button>';
       } else if (t.estado === 'Rechazado') {
-        acciones = `<button class="btn btn-aprobar" onclick="cambiarEstado('Aprobado', this)">✅ Aprobar</button><button class="btn btn-reabrir" onclick="cambiarEstado('Pendiente', this)">🔄 Reabrir</button>`;
+        acciones = '<button class="btn btn-aprobar" onclick="cambiarEstado(\'Aprobado\', this)">✅ Aprobar</button><button class="btn btn-reabrir" onclick="cambiarEstado(\'Pendiente\', this)">🔄 Reabrir</button>';
       } else if (t.estado === 'Completado') {
-        acciones = `<button class="btn btn-reabrir" onclick="cambiarEstado('Pendiente', this)">🔄 Reabrir</button>`;
+        acciones = '<button class="btn btn-reabrir" onclick="cambiarEstado(\'Pendiente\', this)">🔄 Reabrir</button>';
       }
       
-      document.getElementById('detalle').innerHTML = `
-        <div class="detalle-header">
-          <div class="detalle-header-top">
-            <div class="detalle-titulo">${t.solicitud}</div>
-            <div class="detalle-urgencia ${p}">${t.urgencia}</div>
-          </div>
-          <div class="detalle-meta">
-            <div class="detalle-meta-item">👤 ${t.nombre}</div>
-            <div class="detalle-meta-item">📅 ${fecha}</div>
-            <div class="detalle-meta-item">🆔 #${t.fila - 1}</div>
-            <div class="detalle-meta-item">📊 <strong>${t.estado}</strong></div>
-          </div>
-        </div>
-        <div class="detalle-body">
-          ${t.notas ? '<div class="seccion"><div class="seccion-titulo">📝 Notas</div><div class="seccion-contenido">' + t.notas + '</div></div>' : ''}
-          ${evidenciaHtml}
-        </div>
-        <div class="detalle-footer">
-          <div class="acciones-principales">${acciones}</div>
-          <div class="acciones-secundarias">
-            <button class="btn-secundario" onclick="cargarTickets()">🔄 Actualizar</button>
-          </div>
-        </div>`;
+      document.getElementById('detalle').innerHTML = 
+        '<div class="detalle-header">' +
+          '<div class="detalle-header-top">' +
+            '<div class="detalle-titulo">' + t.solicitud + '</div>' +
+            '<div class="detalle-urgencia ' + p + '">' + t.urgencia + '</div>' +
+          '</div>' +
+          '<div class="detalle-meta">' +
+            '<div class="detalle-meta-item">👤 ' + t.nombre + '</div>' +
+            '<div class="detalle-meta-item">📅 ' + fecha + '</div>' +
+            '<div class="detalle-meta-item">🆔 #' + (t.fila - 1) + '</div>' +
+            '<div class="detalle-meta-item">📊 <strong>' + t.estado + '</strong></div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="detalle-body">' +
+          (t.notas ? '<div class="seccion"><div class="seccion-titulo">📝 Notas del solicitante</div><div class="seccion-contenido">' + t.notas + '</div></div>' : '') +
+          notaAdminHtml +
+          evidenciaHtml +
+        '</div>' +
+        '<div class="detalle-footer">' +
+          '<div class="acciones-principales">' + acciones + '</div>' +
+          '<div class="acciones-secundarias">' +
+            '<button class="btn-secundario" onclick="abrirModalNota()">📝 Nota admin</button>' +
+            '<button class="btn-secundario" onclick="cargarTickets()">🔄 Actualizar</button>' +
+          '</div>' +
+        '</div>';
     }
     
     function obtenerPrioridad(u) {
@@ -402,9 +427,6 @@
         });
     }
     
-    // ============================================================
-    // MODAL EVIDENCIA
-    // ============================================================
     function abrirModalEvidencia() {
       archivoEvidencia = null;
       document.getElementById('input-evidencia').value = '';
@@ -436,7 +458,43 @@
     
     function confirmarEvidencia() {
       if (!archivoEvidencia) {
-        mostrarToast('❌ Selecciona una imagen', 'error');
+        const btnSubir = document.getElementById('btn-subir');
+        btnSubir.disabled = true;
+        btnSubir.textContent = '⏳ Completando...';
+        
+        const notas = document.getElementById('notas-admin').value;
+        
+        const urlUpdate = API_URL + '?key=' + API_KEY + 
+                          '&action=update' + 
+                          '&fila=' + ticketSeleccionado.fila + 
+                          '&estado=Completado' +
+                          (notas ? '&notas=' + encodeURIComponent(notas) : '');
+        
+        fetch(urlUpdate)
+          .then(response => response.text())
+          .then(text => {
+            try {
+              const data = JSON.parse(text);
+              if (data.exito) {
+                mostrarToast('✅ Ticket completado', 'exito');
+              } else {
+                mostrarToast('❌ Error: ' + (data.error || 'Desconocido'), 'error');
+              }
+            } catch (e) {
+              mostrarToast('✅ Ticket completado', 'exito');
+            }
+            
+            btnSubir.disabled = false;
+            btnSubir.textContent = '📤 Completar';
+            cerrarModal();
+            setTimeout(() => cargarTickets(), 500);
+          })
+          .catch(error => {
+            mostrarToast('❌ Error: ' + error.message, 'error');
+            btnSubir.disabled = false;
+            btnSubir.textContent = '📤 Completar';
+          });
+        
         return;
       }
       
@@ -446,14 +504,12 @@
       
       const notas = document.getElementById('notas-admin').value;
       
-      // Leer archivo como base64
       const reader = new FileReader();
       reader.onload = function(e) {
         const base64 = e.target.result.split(',')[1];
         const tipoMime = archivoEvidencia.type;
         const nombreArchivo = 'evidencia_' + ticketSeleccionado.fila + '_' + Date.now() + '_' + archivoEvidencia.name;
         
-        // Primero subir la evidencia
         const formData = new FormData();
         formData.append('key', API_KEY);
         formData.append('action', 'upload');
@@ -468,11 +524,9 @@
         })
           .then(response => response.text())
           .then(text => {
-            console.log('Respuesta upload:', text);
             try {
               const data = JSON.parse(text);
               if (data.exito) {
-                // Ahora cambiar estado a Completado
                 const urlUpdate = API_URL + '?key=' + API_KEY + 
                                   '&action=update' + 
                                   '&fila=' + ticketSeleccionado.fila + 
@@ -488,27 +542,73 @@
           .then(() => {
             mostrarToast('✅ Ticket completado con evidencia', 'exito');
             btnSubir.disabled = false;
-            btnSubir.textContent = '📤 Subir y completar';
+            btnSubir.textContent = '📤 Completar';
             cerrarModal();
             setTimeout(() => cargarTickets(), 500);
           })
           .catch(error => {
-            console.error('Error:', error);
             mostrarToast('❌ Error subiendo evidencia: ' + error.message, 'error');
             btnSubir.disabled = false;
-            btnSubir.textContent = '📤 Subir y completar';
+            btnSubir.textContent = '📤 Completar';
           });
       };
       
       reader.readAsDataURL(archivoEvidencia);
     }
     
-    // ============================================================
-    // INICIALIZAR
-    // ============================================================
+    function abrirModalNota() {
+      if (!ticketSeleccionado) return;
+      document.getElementById('input-nota').value = ticketSeleccionado.notasAdmin || '';
+      document.getElementById('modal-nota').classList.add('activo');
+    }
+    
+    function cerrarModalNota() {
+      document.getElementById('modal-nota').classList.remove('activo');
+    }
+    
+    function guardarNota() {
+      const nota = document.getElementById('input-nota').value;
+      const btnGuardar = document.getElementById('btn-guardar-nota');
+      
+      btnGuardar.disabled = true;
+      btnGuardar.textContent = '⏳ Guardando...';
+      
+      const url = API_URL + '?key=' + API_KEY + 
+                  '&action=note' + 
+                  '&fila=' + ticketSeleccionado.fila + 
+                  '&nota=' + encodeURIComponent(nota);
+      
+      fetch(url)
+        .then(response => response.text())
+        .then(text => {
+          try {
+            const data = JSON.parse(text);
+            if (data.exito) {
+              mostrarToast('✅ Nota guardada', 'exito');
+              ticketSeleccionado.notasAdmin = nota;
+              cerrarModalNota();
+              setTimeout(() => cargarTickets(), 500);
+            } else {
+              mostrarToast('❌ Error: ' + (data.error || 'Desconocido'), 'error');
+            }
+          } catch (e) {
+            mostrarToast('✅ Nota guardada', 'exito');
+            cerrarModalNota();
+            setTimeout(() => cargarTickets(), 500);
+          }
+          
+          btnGuardar.disabled = false;
+          btnGuardar.textContent = '💾 Guardar nota';
+        })
+        .catch(error => {
+          mostrarToast('❌ Error: ' + error.message, 'error');
+          btnGuardar.disabled = false;
+          btnGuardar.textContent = '💾 Guardar nota';
+        });
+    }
+    
     cargarTickets();
     
-    // Auto-refresh cada 60s
     setInterval(() => {
       if (!procesando && !cargando) {
         cargarTickets();
