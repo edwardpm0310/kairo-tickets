@@ -138,7 +138,7 @@
   <div class="modal-overlay" id="modal-evidencia">
     <div class="modal">
       <h2>✔️ Completar ticket</h2>
-      <p>Puedes adjuntar una imagen como comprobante (opcional)</p>
+      <p>La imagen es <strong>opcional</strong>. Puedes completar sin adjuntar archivo.</p>
       <input type="file" id="input-evidencia" accept="image/*" onchange="previewImagen(event)">
       <img id="preview-img" class="preview-img" alt="Preview">
       <textarea id="notas-admin" placeholder="Notas adicionales (opcional)"></textarea>
@@ -162,7 +162,7 @@
   </div>
 
   <script>
-        const API_URL = 'https://script.google.com/macros/s/AKfycbzisyJ2AAbAGU0veh2P3dsHz8K87HyYgpy7QspWme-Qsh4X7yoxdj4dZVlk71zmIeyz/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbzisyJ2AAbAGU0veh2P3dsHz8K87HyYgpy7QspWme-Qsh4X7yoxdj4dZVlk71zmIeyz/exec';
     const API_KEY = 'kairo_secret_2026_xyz123';
     
     let todosLosTickets = [];
@@ -456,14 +456,16 @@
       reader.readAsDataURL(file);
     }
     
+    // ✅ FUNCIÓN CORREGIDA: imagen opcional, completa con o sin imagen
     function confirmarEvidencia() {
-      if (!archivoEvidencia) {
-        const btnSubir = document.getElementById('btn-subir');
-        btnSubir.disabled = true;
-        btnSubir.textContent = '⏳ Completando...';
-        
-        const notas = document.getElementById('notas-admin').value;
-        
+      const notas = document.getElementById('notas-admin').value;
+      const btnSubir = document.getElementById('btn-subir');
+      
+      btnSubir.disabled = true;
+      btnSubir.textContent = '⏳ Procesando...';
+      
+      // Función auxiliar para actualizar a Completado
+      function actualizarACompletado(mensajeExito) {
         const urlUpdate = API_URL + '?key=' + API_KEY + 
                           '&action=update' + 
                           '&fila=' + ticketSeleccionado.fila + 
@@ -476,14 +478,13 @@
             try {
               const data = JSON.parse(text);
               if (data.exito) {
-                mostrarToast('✅ Ticket completado', 'exito');
+                mostrarToast(mensajeExito, 'exito');
               } else {
                 mostrarToast('❌ Error: ' + (data.error || 'Desconocido'), 'error');
               }
             } catch (e) {
-              mostrarToast('✅ Ticket completado', 'exito');
+              mostrarToast(mensajeExito, 'exito');
             }
-            
             btnSubir.disabled = false;
             btnSubir.textContent = '📤 Completar';
             cerrarModal();
@@ -494,16 +495,15 @@
             btnSubir.disabled = false;
             btnSubir.textContent = '📤 Completar';
           });
-        
+      }
+      
+      // CASO 1: Sin imagen → completar directo
+      if (!archivoEvidencia) {
+        actualizarACompletado('✅ Ticket completado');
         return;
       }
       
-      const btnSubir = document.getElementById('btn-subir');
-      btnSubir.disabled = true;
-      btnSubir.textContent = '⏳ Procesando...';
-      
-      const notas = document.getElementById('notas-admin').value;
-      
+      // CASO 2: Con imagen → subir primero
       const reader = new FileReader();
       reader.onload = function(e) {
         const base64 = e.target.result.split(',')[1];
@@ -524,32 +524,28 @@
         })
           .then(response => response.text())
           .then(text => {
+            let subidaOk = false;
             try {
               const data = JSON.parse(text);
-              if (data.exito) {
-                const urlUpdate = API_URL + '?key=' + API_KEY + 
-                                  '&action=update' + 
-                                  '&fila=' + ticketSeleccionado.fila + 
-                                  '&estado=Completado' +
-                                  (notas ? '&notas=' + encodeURIComponent(notas) : '');
-                
-                return fetch(urlUpdate);
+              subidaOk = data.exito;
+              if (!data.exito) {
+                console.warn('Subida falló:', data.error);
               }
-            } catch (e) {
-              console.error('Error parseando:', e);
+            } catch (err) {
+              console.error('Error parseando respuesta de subida:', err);
+            }
+            
+            // Completar SIEMPRE, con o sin imagen subida
+            if (subidaOk) {
+              actualizarACompletado('✅ Ticket completado con evidencia');
+            } else {
+              actualizarACompletado('✅ Ticket completado (la imagen no se pudo subir)');
             }
           })
-          .then(() => {
-            mostrarToast('✅ Ticket completado con evidencia', 'exito');
-            btnSubir.disabled = false;
-            btnSubir.textContent = '📤 Completar';
-            cerrarModal();
-            setTimeout(() => cargarTickets(), 500);
-          })
           .catch(error => {
-            mostrarToast('❌ Error subiendo evidencia: ' + error.message, 'error');
-            btnSubir.disabled = false;
-            btnSubir.textContent = '📤 Completar';
+            // Si falla la subida, igual completamos
+            console.error('Error subiendo evidencia:', error);
+            actualizarACompletado('✅ Ticket completado (la imagen no se pudo subir)');
           });
       };
       
