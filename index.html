@@ -151,7 +151,7 @@
   </div>
 
   <script>
-    const API_URL = 'https://script.google.com/macros/s/AKfycbxyPFDpb_dlNKJQ_a9cYjAFXhVIl9Bk9O76gmc6-RAbvfIVJ9ESK6tbh-5TmYnPKMHR/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbyUaEecyHa4W4-NlIYV4ePoLLbdehkDpliYUMNL2A1CrfSbesdLYhWlusQO5jRmsg4/exec';
     const API_KEY = 'kairo_secret_2026_xyz123';
     
     let todosLosTickets = [];
@@ -453,7 +453,7 @@
         const tipoMime = archivoEvidencia.type;
         const nombreArchivo = 'evidencia_' + ticketSeleccionado.fila + '_' + Date.now() + '_' + archivoEvidencia.name;
         
-        // Usar FormData para enviar la imagen (más fiable que URL)
+        // Primero subir la evidencia
         const formData = new FormData();
         formData.append('key', API_KEY);
         formData.append('action', 'upload');
@@ -462,35 +462,31 @@
         formData.append('base64', base64);
         formData.append('tipo', tipoMime);
         
-        // Primero cambiar estado a Completado
-        const urlUpdate = API_URL + '?key=' + API_KEY + 
-                          '&action=update' + 
-                          '&fila=' + ticketSeleccionado.fila + 
-                          '&estado=Completado' +
-                          (notas ? '&notas=' + encodeURIComponent(notas) : '');
-        
-        fetch(urlUpdate)
-          .then(() => {
-            // Después subir la evidencia con POST
-            return fetch(API_URL, {
-              method: 'POST',
-              body: formData
-            });
-          })
+        fetch(API_URL, {
+          method: 'POST',
+          body: formData
+        })
           .then(response => response.text())
           .then(text => {
             console.log('Respuesta upload:', text);
             try {
               const data = JSON.parse(text);
               if (data.exito) {
-                mostrarToast('✅ Ticket completado con evidencia', 'exito');
-              } else {
-                mostrarToast('⚠️ Completado, pero error subiendo evidencia', 'error');
+                // Ahora cambiar estado a Completado
+                const urlUpdate = API_URL + '?key=' + API_KEY + 
+                                  '&action=update' + 
+                                  '&fila=' + ticketSeleccionado.fila + 
+                                  '&estado=Completado' +
+                                  (notas ? '&notas=' + encodeURIComponent(notas) : '');
+                
+                return fetch(urlUpdate);
               }
             } catch (e) {
-              mostrarToast('✅ Ticket completado', 'exito');
+              console.error('Error parseando:', e);
             }
-            
+          })
+          .then(() => {
+            mostrarToast('✅ Ticket completado con evidencia', 'exito');
             btnSubir.disabled = false;
             btnSubir.textContent = '📤 Subir y completar';
             cerrarModal();
@@ -498,11 +494,9 @@
           })
           .catch(error => {
             console.error('Error:', error);
-            mostrarToast('⚠️ Completado, pero error subiendo evidencia', 'error');
+            mostrarToast('❌ Error subiendo evidencia: ' + error.message, 'error');
             btnSubir.disabled = false;
             btnSubir.textContent = '📤 Subir y completar';
-            cerrarModal();
-            setTimeout(() => cargarTickets(), 500);
           });
       };
       
