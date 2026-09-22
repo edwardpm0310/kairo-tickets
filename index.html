@@ -13,8 +13,8 @@
     .sidebar-header-info h1 { font-size: 18px; color: #2c3e50; margin-bottom: 4px; }
     .sidebar-header-info p { font-size: 12px; color: #95a5a6; }
     .btn-refresh { background: #3498db; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-size: 14px; cursor: pointer; transition: all 0.2s; }
-    .btn-refresh:hover { background: #2980b9; transform: rotate(180deg); }
-    .btn-refresh:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-refresh:hover { background: #2980b9; }
+    .btn-refresh:disabled { opacity: 0.5; cursor: not-allowed; }
     .menu-vertical { padding: 8px; border-bottom: 1px solid #e0e6ed; flex-shrink: 0; }
     .menu-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-radius: 8px; cursor: pointer; color: #5a6c7d; font-size: 13px; font-weight: 600; transition: all 0.15s; margin-bottom: 2px; }
     .menu-item:hover { background: #f0f3f7; }
@@ -50,6 +50,8 @@
     .seccion { background: white; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
     .seccion-titulo { font-size: 11px; font-weight: 700; color: #95a5a6; text-transform: uppercase; margin-bottom: 12px; }
     .seccion-contenido { font-size: 14px; color: #34495e; line-height: 1.6; }
+    .evidencia-link { display: inline-flex; align-items: center; gap: 6px; color: #3498db; text-decoration: none; font-weight: 600; font-size: 13px; }
+    .evidencia-link:hover { text-decoration: underline; }
     .detalle-footer { background: white; padding: 20px 24px; border-top: 1px solid #e0e6ed; }
     .acciones-principales { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
     .btn { flex: 1; min-width: 120px; padding: 12px; border-radius: 8px; border: none; font-size: 13px; font-weight: 700; cursor: pointer; color: white; transition: all 0.2s; }
@@ -72,25 +74,20 @@
     .toast.activo { opacity: 1; }
     .toast.exito { background: #27ae60; }
     .toast.error { background: #e74c3c; }
+    .btn-cargando { position: relative; color: transparent !important; }
+    .btn-cargando::after { content: ''; position: absolute; top: 50%; left: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
     
-    /* Spinner en botones */
-    .btn-cargando {
-      position: relative;
-      color: transparent !important;
-    }
-    .btn-cargando::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 16px;
-      height: 16px;
-      margin: -8px 0 0 -8px;
-      border: 2px solid rgba(255,255,255,0.3);
-      border-top-color: white;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
+    /* Modal */
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 100; }
+    .modal-overlay.activo { display: flex; }
+    .modal { background: white; border-radius: 16px; padding: 24px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+    .modal h2 { font-size: 18px; margin-bottom: 8px; }
+    .modal p { font-size: 13px; color: #7f8c8d; margin-bottom: 16px; }
+    .modal input[type="file"] { width: 100%; padding: 12px; border: 2px dashed #e0e6ed; border-radius: 8px; margin-bottom: 16px; cursor: pointer; }
+    .modal textarea { width: 100%; padding: 12px; border: 1px solid #e0e6ed; border-radius: 8px; font-family: inherit; font-size: 13px; resize: vertical; min-height: 80px; margin-bottom: 16px; }
+    .modal-acciones { display: flex; gap: 8px; }
+    .preview-img { max-width: 100%; max-height: 200px; border-radius: 8px; margin-bottom: 16px; display: none; }
+    .preview-img.activo { display: block; }
   </style>
 </head>
 <body>
@@ -136,8 +133,25 @@
   
   <div class="toast" id="toast"></div>
 
+  <div class="modal-overlay" id="modal-evidencia">
+    <div class="modal">
+      <h2>📎 Subir evidencia</h2>
+      <p>Adjunta una imagen como comprobante de que completaste el ticket</p>
+      
+      <input type="file" id="input-evidencia" accept="image/*" onchange="previewImagen(event)">
+      <img id="preview-img" class="preview-img" alt="Preview">
+      
+      <textarea id="notas-admin" placeholder="Notas adicionales (opcional)"></textarea>
+      
+      <div class="modal-acciones">
+        <button class="btn btn-completar" id="btn-subir" onclick="confirmarEvidencia()">📤 Subir y completar</button>
+        <button class="btn-secundario" onclick="cerrarModal()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
   <script>
-    const API_URL = 'https://script.google.com/macros/s/AKfycbx2HjyBCID85xHWm1L6qO99EQ3q1OacpAe2krXdkLsupINQiCHFmF1yaHckfa3KvRwj/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbxyPFDpb_dlNKJQ_a9cYjAFXhVIl9Bk9O76gmc6-RAbvfIVJ9ESK6tbh-5TmYnPKMHR/exec';
     const API_KEY = 'kairo_secret_2026_xyz123';
     
     let todosLosTickets = [];
@@ -145,6 +159,7 @@
     let ticketSeleccionado = null;
     let procesando = false;
     let cargando = false;
+    let archivoEvidencia = null;
     
     function mostrarToast(mensaje, tipo) {
       const toast = document.getElementById('toast');
@@ -154,9 +169,6 @@
       setTimeout(() => toast.classList.remove('activo'), 3000);
     }
     
-    // ============================================================
-    // CARGAR TICKETS
-    // ============================================================
     function cargarTickets() {
       if (cargando) return;
       
@@ -168,9 +180,7 @@
       document.getElementById('sidebar-lista').innerHTML = 
         '<div class="loading"><div class="spinner"></div><div>Cargando...</div></div>';
       
-      const url = API_URL + '?key=' + API_KEY;
-      
-      fetch(url)
+      fetch(API_URL + '?key=' + API_KEY)
         .then(response => response.text())
         .then(text => {
           try {
@@ -203,7 +213,6 @@
           ticketSeleccionado = actualizado;
           renderizarDetalle();
         } else {
-          // El ticket ya no existe (fue eliminado)
           ticketSeleccionado = null;
           renderizarDetalleVacio();
         }
@@ -276,15 +285,26 @@
       const p = obtenerPrioridad(t.urgencia);
       const fecha = t.fecha ? new Date(t.fecha).toLocaleDateString('es-PE') : 'Sin fecha';
       
+      let evidenciaHtml = '';
+      if (t.evidencia) {
+        evidenciaHtml = `
+          <div class="seccion">
+            <div class="seccion-titulo">📎 Evidencia</div>
+            <div class="seccion-contenido">
+              <a href="${t.evidencia}" target="_blank" class="evidencia-link">🔗 Ver evidencia en Drive</a>
+            </div>
+          </div>`;
+      }
+      
       let acciones = '';
       if (t.estado === 'Pendiente') {
-        acciones = `<button class="btn btn-aprobar" data-accion="Aprobado" onclick="cambiarEstado('Aprobado', this)">✅ Aprobar</button><button class="btn btn-rechazar" data-accion="Rechazado" onclick="cambiarEstado('Rechazado', this)">❌ Rechazar</button>`;
+        acciones = `<button class="btn btn-aprobar" onclick="cambiarEstado('Aprobado', this)">✅ Aprobar</button><button class="btn btn-rechazar" onclick="cambiarEstado('Rechazado', this)">❌ Rechazar</button>`;
       } else if (t.estado === 'Aprobado') {
-        acciones = `<button class="btn btn-completar" data-accion="Completado" onclick="cambiarEstado('Completado', this)">✔️ Completar</button><button class="btn btn-rechazar" data-accion="Rechazado" onclick="cambiarEstado('Rechazado', this)">❌ Rechazar</button><button class="btn btn-reabrir" data-accion="Pendiente" onclick="cambiarEstado('Pendiente', this)">🔄 Reabrir</button>`;
+        acciones = `<button class="btn btn-completar" onclick="abrirModalEvidencia()">✔️ Completar</button><button class="btn btn-rechazar" onclick="cambiarEstado('Rechazado', this)">❌ Rechazar</button><button class="btn btn-reabrir" onclick="cambiarEstado('Pendiente', this)">🔄 Reabrir</button>`;
       } else if (t.estado === 'Rechazado') {
-        acciones = `<button class="btn btn-aprobar" data-accion="Aprobado" onclick="cambiarEstado('Aprobado', this)">✅ Aprobar</button><button class="btn btn-reabrir" data-accion="Pendiente" onclick="cambiarEstado('Pendiente', this)">🔄 Reabrir</button>`;
+        acciones = `<button class="btn btn-aprobar" onclick="cambiarEstado('Aprobado', this)">✅ Aprobar</button><button class="btn btn-reabrir" onclick="cambiarEstado('Pendiente', this)">🔄 Reabrir</button>`;
       } else if (t.estado === 'Completado') {
-        acciones = `<button class="btn btn-reabrir" data-accion="Pendiente" onclick="cambiarEstado('Pendiente', this)">🔄 Reabrir</button>`;
+        acciones = `<button class="btn btn-reabrir" onclick="cambiarEstado('Pendiente', this)">🔄 Reabrir</button>`;
       }
       
       document.getElementById('detalle').innerHTML = `
@@ -302,6 +322,7 @@
         </div>
         <div class="detalle-body">
           ${t.notas ? '<div class="seccion"><div class="seccion-titulo">📝 Notas</div><div class="seccion-contenido">' + t.notas + '</div></div>' : ''}
+          ${evidenciaHtml}
         </div>
         <div class="detalle-footer">
           <div class="acciones-principales">${acciones}</div>
@@ -318,32 +339,21 @@
       return 'baja';
     }
     
-    // ============================================================
-    // CAMBIAR ESTADO - Con mejor UX
-    // ============================================================
     function cambiarEstado(estado, boton) {
       if (!ticketSeleccionado || procesando) return;
       
       procesando = true;
       
-      // Deshabilitar todos los botones de acción
       const botones = document.querySelectorAll('.acciones-principales .btn');
       botones.forEach(b => b.disabled = true);
       
-      // Marcar el botón clickeado como cargando
-      if (boton) {
-        boton.classList.add('btn-cargando');
-      }
+      if (boton) boton.classList.add('btn-cargando');
       
-      // Actualización optimista: mover el ticket inmediatamente en la UI
       const ticketAnterior = ticketSeleccionado.estado;
       ticketSeleccionado.estado = estado;
       
-      // Actualizar el ticket en la lista local
       const index = todosLosTickets.findIndex(t => t.fila === ticketSeleccionado.fila);
-      if (index !== -1) {
-        todosLosTickets[index].estado = estado;
-      }
+      if (index !== -1) todosLosTickets[index].estado = estado;
       
       actualizarBadges();
       renderizarLista();
@@ -361,37 +371,30 @@
         .then(text => {
           try {
             const data = JSON.parse(text);
-            
             if (data.exito) {
               mostrarToast('✅ Estado actualizado: ' + estado, 'exito');
-              // Refrescar en segundo plano
               setTimeout(() => cargarTickets(), 500);
             } else {
-              // Revertir cambio
               ticketSeleccionado.estado = ticketAnterior;
               if (index !== -1) todosLosTickets[index].estado = ticketAnterior;
               actualizarBadges();
               renderizarLista();
               renderizarDetalle();
-              
               mostrarToast('❌ Error: ' + (data.error || 'Desconocido'), 'error');
             }
           } catch (e) {
             mostrarToast('❌ Error al parsear respuesta', 'error');
           }
-          
           procesando = false;
           botones.forEach(b => b.disabled = false);
           if (boton) boton.classList.remove('btn-cargando');
         })
         .catch(error => {
-          // Revertir cambio
           ticketSeleccionado.estado = ticketAnterior;
           if (index !== -1) todosLosTickets[index].estado = ticketAnterior;
           actualizarBadges();
           renderizarLista();
           renderizarDetalle();
-          
           mostrarToast('❌ Error: ' + error.message, 'error');
           procesando = false;
           botones.forEach(b => b.disabled = false);
@@ -400,11 +403,118 @@
     }
     
     // ============================================================
+    // MODAL EVIDENCIA
+    // ============================================================
+    function abrirModalEvidencia() {
+      archivoEvidencia = null;
+      document.getElementById('input-evidencia').value = '';
+      document.getElementById('preview-img').classList.remove('activo');
+      document.getElementById('preview-img').src = '';
+      document.getElementById('notas-admin').value = '';
+      document.getElementById('modal-evidencia').classList.add('activo');
+    }
+    
+    function cerrarModal() {
+      document.getElementById('modal-evidencia').classList.remove('activo');
+      archivoEvidencia = null;
+    }
+    
+    function previewImagen(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      archivoEvidencia = file;
+      
+      const preview = document.getElementById('preview-img');
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        preview.src = e.target.result;
+        preview.classList.add('activo');
+      };
+      reader.readAsDataURL(file);
+    }
+    
+    function confirmarEvidencia() {
+      if (!archivoEvidencia) {
+        mostrarToast('❌ Selecciona una imagen', 'error');
+        return;
+      }
+      
+      const btnSubir = document.getElementById('btn-subir');
+      btnSubir.disabled = true;
+      btnSubir.textContent = '⏳ Procesando...';
+      
+      const notas = document.getElementById('notas-admin').value;
+      
+      // Leer archivo como base64
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const base64 = e.target.result.split(',')[1];
+        const tipoMime = archivoEvidencia.type;
+        const nombreArchivo = 'evidencia_' + ticketSeleccionado.fila + '_' + Date.now() + '_' + archivoEvidencia.name;
+        
+        // Usar FormData para enviar la imagen (más fiable que URL)
+        const formData = new FormData();
+        formData.append('key', API_KEY);
+        formData.append('action', 'upload');
+        formData.append('fila', ticketSeleccionado.fila);
+        formData.append('nombre', nombreArchivo);
+        formData.append('base64', base64);
+        formData.append('tipo', tipoMime);
+        
+        // Primero cambiar estado a Completado
+        const urlUpdate = API_URL + '?key=' + API_KEY + 
+                          '&action=update' + 
+                          '&fila=' + ticketSeleccionado.fila + 
+                          '&estado=Completado' +
+                          (notas ? '&notas=' + encodeURIComponent(notas) : '');
+        
+        fetch(urlUpdate)
+          .then(() => {
+            // Después subir la evidencia con POST
+            return fetch(API_URL, {
+              method: 'POST',
+              body: formData
+            });
+          })
+          .then(response => response.text())
+          .then(text => {
+            console.log('Respuesta upload:', text);
+            try {
+              const data = JSON.parse(text);
+              if (data.exito) {
+                mostrarToast('✅ Ticket completado con evidencia', 'exito');
+              } else {
+                mostrarToast('⚠️ Completado, pero error subiendo evidencia', 'error');
+              }
+            } catch (e) {
+              mostrarToast('✅ Ticket completado', 'exito');
+            }
+            
+            btnSubir.disabled = false;
+            btnSubir.textContent = '📤 Subir y completar';
+            cerrarModal();
+            setTimeout(() => cargarTickets(), 500);
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            mostrarToast('⚠️ Completado, pero error subiendo evidencia', 'error');
+            btnSubir.disabled = false;
+            btnSubir.textContent = '📤 Subir y completar';
+            cerrarModal();
+            setTimeout(() => cargarTickets(), 500);
+          });
+      };
+      
+      reader.readAsDataURL(archivoEvidencia);
+    }
+    
+    // ============================================================
     // INICIALIZAR
     // ============================================================
     cargarTickets();
     
-    // Refrescar cada 60 segundos automáticamente
+    // Auto-refresh cada 60s
     setInterval(() => {
       if (!procesando && !cargando) {
         cargarTickets();
