@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kairo Tickets</title>
+  <title>Tickets</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; color: #2c3e50; height: 100vh; overflow: hidden; }
@@ -32,10 +32,12 @@
     .ticket-item.prioridad-alta { border-left-color: #e74c3c; }
     .ticket-item.prioridad-media { border-left-color: #f1c40f; }
     .ticket-item.prioridad-baja { border-left-color: #27ae60; }
+    .ticket-item.prioridad-archivado { border-left-color: #95a5a6; opacity: 0.7; }
     .ticket-titulo { font-size: 13px; font-weight: 600; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     .ticket-titulo.prioridad-alta { color: #c0392b; }
     .ticket-titulo.prioridad-media { color: #b7950b; }
     .ticket-titulo.prioridad-baja { color: #1e8449; }
+    .ticket-titulo.prioridad-archivado { color: #7f8c8d; }
     .detalle { flex: 1; display: flex; flex-direction: column; background: #f5f7fa; overflow: hidden; }
     .detalle-header { background: white; padding: 24px; border-bottom: 1px solid #e0e6ed; }
     .detalle-header-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 12px; }
@@ -62,9 +64,13 @@
     .btn-rechazar { background: #e74c3c; }
     .btn-completar { background: #3498db; }
     .btn-reabrir { background: #f39c12; }
-    .acciones-secundarias { display: flex; gap: 8px; }
-    .btn-secundario { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #e0e6ed; background: white; color: #5a6c7d; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn-archivar { background: #7f8c8d; }
+    .btn-borrar { background: #c0392b; }
+    .acciones-secundarias { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-secundario { flex: 1; min-width: 110px; padding: 10px; border-radius: 8px; border: 1px solid #e0e6ed; background: white; color: #5a6c7d; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
     .btn-secundario:hover { border-color: #3498db; color: #3498db; }
+    .btn-secundario.peligro { color: #c0392b; border-color: #f5b7b1; }
+    .btn-secundario.peligro:hover { background: #fde8e6; border-color: #c0392b; color: #c0392b; }
     .vacio { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #95a5a6; text-align: center; padding: 40px; }
     .vacio-icono { font-size: 64px; margin-bottom: 16px; opacity: 0.5; }
     .vacio-texto { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
@@ -82,7 +88,7 @@
     .modal-overlay.activo { display: flex; }
     .modal { background: white; border-radius: 16px; padding: 24px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
     .modal h2 { font-size: 18px; margin-bottom: 8px; }
-    .modal p { font-size: 13px; color: #7f8c8d; margin-bottom: 16px; }
+    .modal p { font-size: 13px; color: #7f8c8d; margin-bottom: 16px; line-height: 1.5; }
     .modal input[type="file"] { width: 100%; padding: 12px; border: 2px dashed #e0e6ed; border-radius: 8px; margin-bottom: 16px; cursor: pointer; font-size: 12px; }
     .modal textarea { width: 100%; padding: 12px; border: 1px solid #e0e6ed; border-radius: 8px; font-family: inherit; font-size: 13px; resize: vertical; min-height: 80px; margin-bottom: 16px; }
     .modal-acciones { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -90,121 +96,36 @@
     .preview-img.activo { display: block; }
     .btn-mini { background: #f0f3f7; color: #5a6c7d; border: none; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
     .btn-mini:hover { background: #e0e6ed; }
-
-    /* Botón "volver" oculto por defecto (escritorio) */
-    .btn-volver {
-      display: none;
-      align-items: center;
-      gap: 6px;
-      background: #f0f3f7;
-      border: none;
-      padding: 8px 14px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 600;
-      color: #5a6c7d;
-      cursor: pointer;
-      margin-bottom: 16px;
-    }
+    .alerta-peligro { background: #fde8e6; border-left: 4px solid #e74c3c; padding: 14px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; color: #922b21; line-height: 1.5; }
+    .btn-volver { display: none; align-items: center; gap: 6px; background: #f0f3f7; border: none; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; color: #5a6c7d; cursor: pointer; margin-bottom: 16px; }
     .btn-volver:hover { background: #e0e6ed; }
 
     /* ===== RESPONSIVE MÓVIL ===== */
     @media (max-width: 768px) {
       body { overflow: hidden; }
-      
       .app { flex-direction: column; height: 100vh; position: relative; }
-      
-      .sidebar {
-        width: 100%;
-        height: 100vh;
-        border-right: none;
-        position: absolute;
-        top: 0;
-        left: 0;
-        z-index: 10;
-        transition: transform 0.3s ease;
-      }
-      
-      .detalle {
-        width: 100%;
-        height: 100vh;
-        position: absolute;
-        top: 0;
-        left: 0;
-        z-index: 20;
-        background: #f5f7fa;
-        transform: translateX(100%);
-        transition: transform 0.3s ease;
-      }
-      
-      /* Cuando hay ticket seleccionado, mostramos el detalle encima */
-      body.viendo-detalle .detalle {
-        transform: translateX(0);
-      }
-      
-      body.viendo-detalle .sidebar {
-        transform: translateX(-100%);
-      }
-      
+      .sidebar { width: 100%; height: 100vh; border-right: none; position: absolute; top: 0; left: 0; z-index: 10; transition: transform 0.3s ease; }
+      .detalle { width: 100%; height: 100vh; position: absolute; top: 0; left: 0; z-index: 20; background: #f5f7fa; transform: translateX(100%); transition: transform 0.3s ease; }
+      body.viendo-detalle .detalle { transform: translateX(0); }
+      body.viendo-detalle .sidebar { transform: translateX(-100%); }
       .detalle-header { padding: 16px; }
-      .detalle-titulo { font-size: 17px; }
+      .detalle-titulo { font-size: 18px; }
       .detalle-body { padding: 16px; }
       .detalle-footer { padding: 16px; }
-      
-      .detalle-meta { gap: 12px; font-size: 12px; }
-      
+      .detalle-meta { gap: 12px; font-size: 13px; }
       .acciones-principales .btn { min-width: 100px; padding: 10px; font-size: 12px; }
-      
       .seccion { padding: 16px; }
-      
-      /* Botón "volver" solo visible en móvil */
-      .btn-volver {
-        display: inline-flex !important;
-      }
-      
-      /* ===== MEJORAS MÓVIL: tipografía y tabs ===== */
-      
-      /* Fuentes más grandes y legibles */
+      .btn-volver { display: inline-flex !important; }
       .ticket-titulo { font-size: 15px; }
       .menu-item { font-size: 14px; padding: 12px 16px; }
-      .detalle-titulo { font-size: 18px; }
       .seccion-contenido { font-size: 15px; }
-      .detalle-meta { font-size: 13px; }
-      
-      /* Inputs con 16px para evitar zoom en iOS */
-      input, textarea, select, button {
-        font-size: 16px !important;
-      }
-      
-      /* Tabs horizontales en el menú */
-      .menu-vertical {
-        display: flex;
-        overflow-x: auto;
-        overflow-y: hidden;
-        gap: 8px;
-        padding: 10px 8px;
-        scrollbar-width: none;
-        -webkit-overflow-scrolling: touch;
-      }
+      input, textarea, select, button { font-size: 16px !important; }
+      .menu-vertical { display: flex; overflow-x: auto; overflow-y: hidden; gap: 8px; padding: 10px 8px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
       .menu-vertical::-webkit-scrollbar { display: none; }
-      
-      .menu-item {
-        flex-shrink: 0;
-        min-width: fit-content;
-        border-radius: 20px;
-        padding: 8px 16px;
-        margin-bottom: 0;
-        white-space: nowrap;
-      }
-      
+      .menu-item { flex-shrink: 0; min-width: fit-content; border-radius: 20px; padding: 8px 16px; margin-bottom: 0; white-space: nowrap; }
       .menu-item-izq { gap: 6px; }
       .menu-item-icono { font-size: 14px; }
-      
-      .menu-item-badge {
-        padding: 2px 6px;
-        font-size: 10px;
-        min-width: 20px;
-      }
+      .menu-item-badge { padding: 2px 6px; font-size: 10px; min-width: 20px; }
     }
   </style>
 </head>
@@ -213,7 +134,7 @@
     <div class="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-header-info">
-          <h1>🎟️ Kairo Tickets</h1>
+          <h1>🎟️ Tickets</h1>
           <p>Sistema de solicitudes</p>
         </div>
         <button class="btn-refresh" id="btn-refresh" onclick="cargarTickets()" title="Refrescar tickets">🔄</button>
@@ -234,6 +155,10 @@
         <div class="menu-item" id="menu-completado" onclick="cambiarTab('Completado')">
           <div class="menu-item-izq"><span class="menu-item-icono">✔️</span><span>Completados</span></div>
           <span class="menu-item-badge" id="badge-completados">0</span>
+        </div>
+        <div class="menu-item" id="menu-archivado" onclick="cambiarTab('Archivado')">
+          <div class="menu-item-izq"><span class="menu-item-icono">📦</span><span>Archivados</span></div>
+          <span class="menu-item-badge" id="badge-archivados">0</span>
         </div>
       </div>
       <div class="sidebar-lista" id="sidebar-lista">
@@ -277,8 +202,23 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="modal-borrar">
+    <div class="modal">
+      <h2>🗑️ Borrar ticket</h2>
+      <div class="alerta-peligro">
+        <strong>⚠️ Esta acción es permanente e irreversible.</strong><br>
+        Se eliminará el ticket de la hoja de cálculo y también se borrará el archivo de evidencia de Drive (si existe).
+      </div>
+      <p id="borrar-detalle"></p>
+      <div class="modal-acciones">
+        <button class="btn btn-borrar" id="btn-confirmar-borrar" onclick="confirmarBorrar()">🗑️ Sí, borrar</button>
+        <button class="btn-secundario" onclick="cerrarModalBorrar()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
   <script>
-    const API_URL = 'https://script.google.com/macros/s/AKfycbz535moPm106bFTMELfU5PykYl5Ul56382uv2MrEG21i2pSiH2_uno-xdrI0vyjLsbR/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbz6NSnSxMyqkF0zaz1me3IYbFmU81DKYndrEbMR8Isxz-YP4yuvibpgZjp7B3qLut-Z/exec';
     const API_KEY = 'kairo_secret_2026_xyz123';
     
     let todosLosTickets = [];
@@ -288,7 +228,6 @@
     let cargando = false;
     let archivoEvidencia = null;
     
-    // ===== CACHÉ LOCAL =====
     function guardarCache(tickets) {
       try {
         localStorage.setItem('kairo_tickets_cache', JSON.stringify({
@@ -317,7 +256,6 @@
     function cargarTickets() {
       if (cargando) return;
       
-      // ✅ Mostrar caché al instante (si existe)
       const cache = leerCache();
       if (cache && cache.data && todosLosTickets.length === 0) {
         todosLosTickets = cache.data;
@@ -330,7 +268,6 @@
       btnRefresh.disabled = true;
       btnRefresh.textContent = '⏳';
       
-      // Solo mostrar spinner si NO hay caché
       if (!cache || todosLosTickets.length === 0) {
         document.getElementById('sidebar-lista').innerHTML = 
           '<div class="loading"><div class="spinner"></div><div>Cargando...</div></div>';
@@ -394,6 +331,7 @@
       document.getElementById('badge-aprobados').textContent = t.filter(x => x.estado === 'Aprobado').length;
       document.getElementById('badge-rechazados').textContent = t.filter(x => x.estado === 'Rechazado').length;
       document.getElementById('badge-completados').textContent = t.filter(x => x.estado === 'Completado').length;
+      document.getElementById('badge-archivados').textContent = t.filter(x => x.estado === 'Archivado').length;
     }
     
     function cambiarTab(estado) {
@@ -428,8 +366,6 @@
       ticketSeleccionado = (todosLosTickets || []).find(t => t.fila === fila);
       renderizarLista();
       renderizarDetalle();
-      
-      // En móvil, mostrar el detalle encima
       if (window.innerWidth <= 768) {
         document.body.classList.add('viendo-detalle');
       }
@@ -487,7 +423,22 @@
         acciones = '<button class="btn btn-aprobar" onclick="cambiarEstado(\'Aprobado\', this)">✅ Aprobar</button><button class="btn btn-reabrir" onclick="cambiarEstado(\'Pendiente\', this)">🔄 Reabrir</button>';
       } else if (t.estado === 'Completado') {
         acciones = '<button class="btn btn-reabrir" onclick="cambiarEstado(\'Pendiente\', this)">🔄 Reabrir</button>';
+      } else if (t.estado === 'Archivado') {
+        acciones = '<button class="btn btn-reabrir" onclick="cambiarEstado(\'Pendiente\', this)">🔄 Restaurar</button>';
       }
+      
+      let accionesSecundarias = 
+        '<button class="btn-secundario" onclick="abrirModalNota()">📝 Nota admin</button>' +
+        '<button class="btn-secundario" onclick="cargarTickets()">🔄 Actualizar</button>';
+      
+      if (t.estado !== 'Archivado') {
+        accionesSecundarias = 
+          '<button class="btn-secundario" onclick="archivarTicket()">📦 Archivar</button>' +
+          accionesSecundarias;
+      }
+      
+      accionesSecundarias += 
+        '<button class="btn-secundario peligro" onclick="abrirModalBorrar()">🗑️ Borrar</button>';
       
       document.getElementById('detalle').innerHTML = 
         '<div class="detalle-header">' +
@@ -510,10 +461,7 @@
         '</div>' +
         '<div class="detalle-footer">' +
           '<div class="acciones-principales">' + acciones + '</div>' +
-          '<div class="acciones-secundarias">' +
-            '<button class="btn-secundario" onclick="abrirModalNota()">📝 Nota admin</button>' +
-            '<button class="btn-secundario" onclick="cargarTickets()">🔄 Actualizar</button>' +
-          '</div>' +
+          '<div class="acciones-secundarias">' + accionesSecundarias + '</div>' +
         '</div>';
     }
     
@@ -521,6 +469,7 @@
       u = (u || '').toLowerCase();
       if (u.includes('alta') || u.includes('crítica')) return 'alta';
       if (u.includes('media')) return 'media';
+      if (u.includes('archiv')) return 'archivado';
       return 'baja';
     }
     
@@ -528,10 +477,8 @@
       if (!ticketSeleccionado || procesando) return;
       
       procesando = true;
-      
       const botones = document.querySelectorAll('.acciones-principales .btn');
       botones.forEach(b => b.disabled = true);
-      
       if (boton) boton.classList.add('btn-cargando');
       
       const ticketAnterior = ticketSeleccionado.estado;
@@ -543,16 +490,12 @@
       actualizarBadges();
       renderizarLista();
       renderizarDetalle();
-      
       mostrarToast('⏳ Actualizando a ' + estado + '...');
       
-      const url = API_URL + '?key=' + API_KEY + 
-                  '&action=update' + 
-                  '&fila=' + ticketSeleccionado.fila + 
-                  '&estado=' + encodeURIComponent(estado);
+      const url = API_URL + '?key=' + API_KEY + '&action=update&fila=' + ticketSeleccionado.fila + '&estado=' + encodeURIComponent(estado);
       
       fetch(url)
-        .then(response => response.text())
+        .then(r => r.text())
         .then(text => {
           try {
             const data = JSON.parse(text);
@@ -588,6 +531,102 @@
         });
     }
     
+    function archivarTicket() {
+      if (!ticketSeleccionado || procesando) return;
+      
+      procesando = true;
+      mostrarToast('⏳ Archivando ticket...');
+      
+      const url = API_URL + '?key=' + API_KEY + '&action=archive&fila=' + ticketSeleccionado.fila;
+      
+      fetch(url)
+        .then(r => r.text())
+        .then(text => {
+          try {
+            const data = JSON.parse(text);
+            if (data.exito) {
+              mostrarToast('📦 Ticket archivado', 'exito');
+              todosLosTickets = todosLosTickets.filter(t => t.fila !== ticketSeleccionado.fila);
+              guardarCache(todosLosTickets);
+              ticketSeleccionado = null;
+              renderizarDetalleVacio();
+              renderizarLista();
+              actualizarBadges();
+              setTimeout(() => cargarTickets(), 500);
+            } else {
+              mostrarToast('❌ Error: ' + (data.error || 'Desconocido'), 'error');
+            }
+          } catch (e) {
+            mostrarToast('❌ Error al parsear respuesta', 'error');
+          }
+          procesando = false;
+        })
+        .catch(error => {
+          mostrarToast('❌ Error: ' + error.message, 'error');
+          procesando = false;
+        });
+    }
+    
+    function abrirModalBorrar() {
+      if (!ticketSeleccionado) return;
+      
+      const t = ticketSeleccionado;
+      document.getElementById('borrar-detalle').innerHTML = 
+        '<strong>Ticket:</strong> ' + t.solicitud + '<br>' +
+        '<strong>De:</strong> ' + t.nombre + '<br>' +
+        (t.evidencia ? '<strong>⚠️ Tiene evidencia adjunta que también se borrará</strong>' : '');
+      
+      document.getElementById('modal-borrar').classList.add('activo');
+    }
+    
+    function cerrarModalBorrar() {
+      document.getElementById('modal-borrar').classList.remove('activo');
+    }
+    
+    function confirmarBorrar() {
+      if (!ticketSeleccionado || procesando) return;
+      
+      const btn = document.getElementById('btn-confirmar-borrar');
+      btn.disabled = true;
+      btn.textContent = '⏳ Borrando...';
+      procesando = true;
+      
+      const fila = ticketSeleccionado.fila;
+      const url = API_URL + '?key=' + API_KEY + '&action=delete&fila=' + fila;
+      
+      fetch(url)
+        .then(r => r.text())
+        .then(text => {
+          try {
+            const data = JSON.parse(text);
+            if (data.exito) {
+              mostrarToast('🗑️ Ticket borrado permanentemente', 'exito');
+              todosLosTickets = todosLosTickets.filter(t => t.fila !== fila);
+              guardarCache(todosLosTickets);
+              ticketSeleccionado = null;
+              renderizarDetalleVacio();
+              renderizarLista();
+              actualizarBadges();
+              cerrarModalBorrar();
+              setTimeout(() => cargarTickets(), 500);
+            } else {
+              mostrarToast('❌ Error: ' + (data.error || 'Desconocido'), 'error');
+            }
+          } catch (e) {
+            mostrarToast('❌ Error al parsear respuesta', 'error');
+          }
+          btn.disabled = false;
+          btn.textContent = '🗑️ Sí, borrar';
+          procesando = false;
+        })
+        .catch(error => {
+          mostrarToast('❌ Error: ' + error.message, 'error');
+          btn.disabled = false;
+          btn.textContent = '🗑️ Sí, borrar';
+          procesando = false;
+        });
+    }
+    
     function abrirModalEvidencia() {
       archivoEvidencia = null;
       document.getElementById('input-evidencia').value = '';
@@ -605,9 +644,7 @@
     function previewImagen(event) {
       const file = event.target.files[0];
       if (!file) return;
-      
       archivoEvidencia = file;
-      
       const preview = document.getElementById('preview-img');
       const reader = new FileReader();
       reader.onload = function(e) {
@@ -617,32 +654,22 @@
       reader.readAsDataURL(file);
     }
     
-    // ✅ Imagen opcional: completa con o sin imagen
     function confirmarEvidencia() {
       const notas = document.getElementById('notas-admin').value;
       const btnSubir = document.getElementById('btn-subir');
-      
       btnSubir.disabled = true;
       btnSubir.textContent = '⏳ Procesando...';
       
-      // Función auxiliar para actualizar a Completado
       function actualizarACompletado(mensajeExito) {
-        const urlUpdate = API_URL + '?key=' + API_KEY + 
-                          '&action=update' + 
-                          '&fila=' + ticketSeleccionado.fila + 
-                          '&estado=Completado' +
-                          (notas ? '&notas=' + encodeURIComponent(notas) : '');
+        const urlUpdate = API_URL + '?key=' + API_KEY + '&action=update&fila=' + ticketSeleccionado.fila + '&estado=Completado' + (notas ? '&notas=' + encodeURIComponent(notas) : '');
         
         fetch(urlUpdate)
-          .then(response => response.text())
+          .then(r => r.text())
           .then(text => {
             try {
               const data = JSON.parse(text);
-              if (data.exito) {
-                mostrarToast(mensajeExito, 'exito');
-              } else {
-                mostrarToast('❌ Error: ' + (data.error || 'Desconocido'), 'error');
-              }
+              if (data.exito) mostrarToast(mensajeExito, 'exito');
+              else mostrarToast('❌ Error: ' + (data.error || 'Desconocido'), 'error');
             } catch (e) {
               mostrarToast(mensajeExito, 'exito');
             }
@@ -658,13 +685,11 @@
           });
       }
       
-      // CASO 1: Sin imagen → completar directo
       if (!archivoEvidencia) {
         actualizarACompletado('✅ Ticket completado');
         return;
       }
       
-      // CASO 2: Con imagen → subir primero
       const reader = new FileReader();
       reader.onload = function(e) {
         const base64 = e.target.result.split(',')[1];
@@ -679,32 +704,19 @@
         formData.append('base64', base64);
         formData.append('tipo', tipoMime);
         
-        fetch(API_URL, {
-          method: 'POST',
-          body: formData
-        })
-          .then(response => response.text())
+        fetch(API_URL, { method: 'POST', body: formData })
+          .then(r => r.text())
           .then(text => {
             let subidaOk = false;
             try {
               const data = JSON.parse(text);
               subidaOk = data.exito;
-              if (!data.exito) {
-                console.warn('Subida falló:', data.error);
-              }
-            } catch (err) {
-              console.error('Error parseando respuesta de subida:', err);
-            }
+            } catch (err) { console.error(err); }
             
-            // Completar SIEMPRE, con o sin imagen subida
-            if (subidaOk) {
-              actualizarACompletado('✅ Ticket completado con evidencia');
-            } else {
-              actualizarACompletado('✅ Ticket completado (la imagen no se pudo subir)');
-            }
+            if (subidaOk) actualizarACompletado('✅ Ticket completado con evidencia');
+            else actualizarACompletado('✅ Ticket completado (la imagen no se pudo subir)');
           })
           .catch(error => {
-            console.error('Error subiendo evidencia:', error);
             actualizarACompletado('✅ Ticket completado (la imagen no se pudo subir)');
           });
       };
@@ -725,17 +737,13 @@
     function guardarNota() {
       const nota = document.getElementById('input-nota').value;
       const btnGuardar = document.getElementById('btn-guardar-nota');
-      
       btnGuardar.disabled = true;
       btnGuardar.textContent = '⏳ Guardando...';
       
-      const url = API_URL + '?key=' + API_KEY + 
-                  '&action=note' + 
-                  '&fila=' + ticketSeleccionado.fila + 
-                  '&nota=' + encodeURIComponent(nota);
+      const url = API_URL + '?key=' + API_KEY + '&action=note&fila=' + ticketSeleccionado.fila + '&nota=' + encodeURIComponent(nota);
       
       fetch(url)
-        .then(response => response.text())
+        .then(r => r.text())
         .then(text => {
           try {
             const data = JSON.parse(text);
@@ -752,7 +760,6 @@
             cerrarModalNota();
             setTimeout(() => cargarTickets(), 500);
           }
-          
           btnGuardar.disabled = false;
           btnGuardar.textContent = '💾 Guardar nota';
         })
@@ -763,17 +770,14 @@
         });
     }
     
-    // ===== INICIO =====
     cargarTickets();
     
-    // Auto-refresh: cada 3 min si la pestaña está visible
     setInterval(() => {
       if (!procesando && !cargando && document.visibilityState === 'visible') {
         cargarTickets();
       }
     }, 180000);
     
-    // Refrescar al volver a la pestaña
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible' && !procesando && !cargando) {
         cargarTickets();
