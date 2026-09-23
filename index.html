@@ -2,11 +2,13 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Tickets</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; color: #2c3e50; height: 100vh; overflow: hidden; }
+    
+    /* ========== LAYOUT ESCRITORIO ========== */
     .app { display: flex; height: 100vh; }
     .sidebar { width: 300px; background: white; border-right: 1px solid #e0e6ed; display: flex; flex-direction: column; overflow: hidden; }
     .sidebar-header { padding: 16px 20px; border-bottom: 1px solid #e0e6ed; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; }
@@ -38,6 +40,7 @@
     .ticket-titulo.prioridad-media { color: #b7950b; }
     .ticket-titulo.prioridad-baja { color: #1e8449; }
     .ticket-titulo.prioridad-archivado { color: #7f8c8d; }
+    
     .detalle { flex: 1; display: flex; flex-direction: column; background: #f5f7fa; overflow: hidden; }
     .detalle-header { background: white; padding: 24px; border-bottom: 1px solid #e0e6ed; }
     .detalle-header-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 12px; }
@@ -64,7 +67,6 @@
     .btn-rechazar { background: #e74c3c; }
     .btn-completar { background: #3498db; }
     .btn-reabrir { background: #f39c12; }
-    .btn-archivar { background: #7f8c8d; }
     .btn-borrar { background: #c0392b; }
     .acciones-secundarias { display: flex; gap: 8px; flex-wrap: wrap; }
     .btn-secundario { flex: 1; min-width: 110px; padding: 10px; border-radius: 8px; border: 1px solid #e0e6ed; background: white; color: #5a6c7d; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
@@ -100,32 +102,296 @@
     .btn-volver { display: none; align-items: center; gap: 6px; background: #f0f3f7; border: none; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; color: #5a6c7d; cursor: pointer; margin-bottom: 16px; }
     .btn-volver:hover { background: #e0e6ed; }
 
-    /* ===== RESPONSIVE MÓVIL ===== */
+    /* ========== RESPONSIVE MÓVIL - REDISEÑO COMPLETO ========== */
     @media (max-width: 768px) {
       body { overflow: hidden; }
+      
       .app { flex-direction: column; height: 100vh; position: relative; }
-      .sidebar { width: 100%; height: 100vh; border-right: none; position: absolute; top: 0; left: 0; z-index: 10; transition: transform 0.3s ease; }
-      .detalle { width: 100%; height: 100vh; position: absolute; top: 0; left: 0; z-index: 20; background: #f5f7fa; transform: translateX(100%); transition: transform 0.3s ease; }
-      body.viendo-detalle .detalle { transform: translateX(0); }
-      body.viendo-detalle .sidebar { transform: translateX(-100%); }
-      .detalle-header { padding: 16px; }
-      .detalle-titulo { font-size: 18px; }
-      .detalle-body { padding: 16px; }
-      .detalle-footer { padding: 16px; }
-      .detalle-meta { gap: 12px; font-size: 13px; }
-      .acciones-principales .btn { min-width: 100px; padding: 10px; font-size: 12px; }
-      .seccion { padding: 16px; }
-      .btn-volver { display: inline-flex !important; }
-      .ticket-titulo { font-size: 15px; }
-      .menu-item { font-size: 14px; padding: 12px 16px; }
-      .seccion-contenido { font-size: 15px; }
-      input, textarea, select, button { font-size: 16px !important; }
-      .menu-vertical { display: flex; overflow-x: auto; overflow-y: hidden; gap: 8px; padding: 10px 8px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+      
+      /* SIDEBAR: ocupa toda la pantalla, es la vista principal */
+      .sidebar {
+        width: 100%;
+        height: 100vh;
+        border-right: none;
+        display: flex;
+        flex-direction: column;
+        background: #f5f7fa;
+      }
+      
+      /* HEADER: compacto, 1 sola línea */
+      .sidebar-header {
+        padding: 14px 16px;
+        background: white;
+        border-bottom: 1px solid #e0e6ed;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-shrink: 0;
+      }
+      
+      .sidebar-header-info h1 {
+        font-size: 20px;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        margin-bottom: 0;
+      }
+      
+      .sidebar-header-info p {
+        display: none; /* ocultar subtítulo en móvil */
+      }
+      
+      .btn-refresh {
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        border-radius: 50%;
+        font-size: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      /* TABS: píldoras scrollables */
+      .menu-vertical {
+        display: flex;
+        overflow-x: auto;
+        overflow-y: hidden;
+        gap: 8px;
+        padding: 12px 16px;
+        background: white;
+        border-bottom: 1px solid #e0e6ed;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+        flex-shrink: 0;
+      }
       .menu-vertical::-webkit-scrollbar { display: none; }
-      .menu-item { flex-shrink: 0; min-width: fit-content; border-radius: 20px; padding: 8px 16px; margin-bottom: 0; white-space: nowrap; }
-      .menu-item-izq { gap: 6px; }
-      .menu-item-icono { font-size: 14px; }
-      .menu-item-badge { padding: 2px 6px; font-size: 10px; min-width: 20px; }
+      
+      .menu-item {
+        flex-shrink: 0;
+        min-width: fit-content;
+        border-radius: 20px;
+        padding: 8px 14px;
+        margin-bottom: 0;
+        background: #f0f3f7;
+        color: #5a6c7d;
+        font-size: 13px;
+        font-weight: 600;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.15s;
+      }
+      
+      .menu-item.activo {
+        background: #2874a6;
+        color: white;
+      }
+      
+      .menu-item-izq { gap: 4px; }
+      .menu-item-icono { font-size: 14px; width: auto; }
+      .menu-item span:not(.menu-item-icono):not(.menu-item-badge) {
+        font-size: 13px;
+      }
+      
+      .menu-item-badge {
+        padding: 2px 6px;
+        font-size: 10px;
+        min-width: 18px;
+        background: rgba(0,0,0,0.1);
+      }
+      
+      .menu-item.activo .menu-item-badge {
+        background: rgba(255,255,255,0.25);
+        color: white;
+      }
+      
+      /* LISTA: tarjetas grandes, con más info */
+      .sidebar-lista {
+        padding: 12px;
+        background: #f5f7fa;
+      }
+      
+      .ticket-item {
+        padding: 16px;
+        border-radius: 14px;
+        margin-bottom: 10px;
+        min-height: auto;
+        background: white;
+        border-left: 5px solid #ddd;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        cursor: pointer;
+      }
+      
+      .ticket-item:active {
+        transform: scale(0.98);
+        background: #fafbfc;
+      }
+      
+      .ticket-titulo {
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1.4;
+        margin-bottom: 8px;
+      }
+      
+      /* Meta info dentro de la tarjeta (la agregamos via JS) */
+      .ticket-meta {
+        display: flex;
+        gap: 12px;
+        font-size: 12px;
+        color: #7f8c8d;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      
+      .ticket-urgencia {
+        padding: 3px 10px;
+        border-radius: 10px;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+      }
+      
+      .ticket-urgencia.alta { background: #fde8e6; color: #c0392b; }
+      .ticket-urgencia.media { background: #fef9e7; color: #b7950b; }
+      .ticket-urgencia.baja { background: #e8f8f0; color: #1e8449; }
+      .ticket-urgencia.archivado { background: #f0f3f7; color: #7f8c8d; }
+      
+      /* DETALLE: pantalla completa encima */
+      .detalle {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100vh;
+        z-index: 20;
+        background: #f5f7fa;
+        transform: translateX(100%);
+        transition: transform 0.25s ease;
+        display: flex;
+        flex-direction: column;
+      }
+      
+      body.viendo-detalle .detalle {
+        transform: translateX(0);
+      }
+      
+      /* Botón volver */
+      .btn-volver {
+        display: inline-flex !important;
+        align-items: center;
+        gap: 6px;
+        background: transparent;
+        border: none;
+        padding: 6px 0;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 600;
+        color: #3498db;
+        cursor: pointer;
+        margin-bottom: 12px;
+      }
+      
+      /* Detalle header */
+      .detalle-header {
+        padding: 16px;
+        background: white;
+        border-bottom: 1px solid #e0e6ed;
+      }
+      
+      .detalle-header-top {
+        flex-direction: column;
+        gap: 8px;
+      }
+      
+      .detalle-titulo {
+        font-size: 22px;
+        font-weight: 800;
+        line-height: 1.3;
+      }
+      
+      .detalle-urgencia {
+        align-self: flex-start;
+        padding: 5px 12px;
+        font-size: 11px;
+      }
+      
+      .detalle-meta {
+        gap: 12px 16px;
+        font-size: 13px;
+      }
+      
+      /* Detalle body */
+      .detalle-body {
+        padding: 16px;
+      }
+      
+      .seccion {
+        padding: 16px;
+        border-radius: 12px;
+        margin-bottom: 12px;
+      }
+      
+      .seccion-titulo {
+        font-size: 11px;
+        margin-bottom: 10px;
+      }
+      
+      .seccion-contenido {
+        font-size: 15px;
+        line-height: 1.6;
+      }
+      
+      /* Detalle footer: botones grandes */
+      .detalle-footer {
+        padding: 12px 16px 16px;
+        background: white;
+        border-top: 1px solid #e0e6ed;
+      }
+      
+      .acciones-principales {
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      
+      .acciones-principales .btn {
+        min-width: auto;
+        padding: 14px 12px;
+        font-size: 14px;
+        border-radius: 10px;
+      }
+      
+      .acciones-secundarias {
+        gap: 8px;
+      }
+      
+      .btn-secundario {
+        min-width: auto;
+        padding: 12px;
+        font-size: 13px;
+        border-radius: 10px;
+      }
+      
+      /* Inputs 16px para evitar zoom iOS */
+      input, textarea, select, button {
+        font-size: 16px;
+      }
+      
+      /* Modales a pantalla completa en móvil */
+      .modal {
+        border-radius: 16px;
+        padding: 20px;
+        max-height: 95vh;
+      }
+    }
+    
+    /* ========== MÓVIL PEQUEÑO ========== */
+    @media (max-width: 400px) {
+      .sidebar-header-info h1 { font-size: 18px; }
+      .ticket-titulo { font-size: 15px; }
+      .detalle-titulo { font-size: 20px; }
     }
   </style>
 </head>
@@ -358,7 +624,17 @@
       contenedor.innerHTML = filtrados.map(ticket => {
         const p = obtenerPrioridad(ticket.urgencia);
         const sel = ticketSeleccionado && ticketSeleccionado.fila === ticket.fila;
-        return '<div class="ticket-item prioridad-' + p + ' ' + (sel ? 'seleccionado' : '') + '" onclick="seleccionarTicket(' + ticket.fila + ')"><div class="ticket-titulo prioridad-' + p + '">' + ticket.solicitud + '</div></div>';
+        const fecha = ticket.fecha ? new Date(ticket.fecha).toLocaleDateString('es-PE', {day:'2-digit',month:'2-digit'}) : '';
+        
+        // Estructura enriquecida para móvil (con meta info)
+        return '<div class="ticket-item prioridad-' + p + ' ' + (sel ? 'seleccionado' : '') + '" onclick="seleccionarTicket(' + ticket.fila + ')">' +
+          '<div class="ticket-titulo prioridad-' + p + '">' + ticket.solicitud + '</div>' +
+          '<div class="ticket-meta">' +
+            '<span class="ticket-urgencia ' + p + '">' + (ticket.urgencia || 'Baja') + '</span>' +
+            (fecha ? '<span>📅 ' + fecha + '</span>' : '') +
+            (ticket.nombre ? '<span>👤 ' + ticket.nombre + '</span>' : '') +
+          '</div>' +
+        '</div>';
       }).join('');
     }
     
@@ -366,6 +642,7 @@
       ticketSeleccionado = (todosLosTickets || []).find(t => t.fila === fila);
       renderizarLista();
       renderizarDetalle();
+      
       if (window.innerWidth <= 768) {
         document.body.classList.add('viendo-detalle');
       }
@@ -552,6 +829,7 @@
               renderizarDetalleVacio();
               renderizarLista();
               actualizarBadges();
+              if (window.innerWidth <= 768) volverALista();
               setTimeout(() => cargarTickets(), 500);
             } else {
               mostrarToast('❌ Error: ' + (data.error || 'Desconocido'), 'error');
@@ -608,6 +886,7 @@
               renderizarLista();
               actualizarBadges();
               cerrarModalBorrar();
+              if (window.innerWidth <= 768) volverALista();
               setTimeout(() => cargarTickets(), 500);
             } else {
               mostrarToast('❌ Error: ' + (data.error || 'Desconocido'), 'error');
