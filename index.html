@@ -2252,13 +2252,28 @@
   cargarTickets();
   cargarContactos();
 
-  setInterval(() => {
-    if (!procesando && !cargando && document.visibilityState === 'visible') cargarTickets();
-  }, 180000);
-
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && !procesando && !cargando) cargarTickets();
-  });
+setInterval(() => {
+  if (!procesando && !cargando && document.visibilityState === 'visible') {
+    // ✅ NO recargar si el usuario está escribiendo
+    const notaRapida = document.getElementById('nota-rapida');
+    const modalNota = document.getElementById('modal-nota');
+    
+    // Si hay una nota escrita sin guardar, no recargar
+    if (notaRapida && notaRapida.value.trim() && ticketSeleccionado) {
+      const guardado = sessionStorage.getItem('nota_rapida_' + ticketSeleccionado.fila);
+      if (notaRapida.value !== guardado) {
+        return; // ← No recargar, el usuario está escribiendo
+      }
+    }
+    
+    // Si el modal de nota está abierto, no recargar
+    if (modalNota && modalNota.classList.contains('activo')) {
+      return; // ← No recargar
+    }
+    
+    cargarTickets();
+  }
+}, 60000);
 </script>
 </body>
 </html>
