@@ -1,0 +1,2165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎟️</text></svg>">
+  <title>Tickets</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; color: #2c3e50; height: 100dvh; overflow: hidden; }
+
+    .app { display: flex; height: 100dvh; }
+
+    /* ============ SIDEBAR ============ */
+    .sidebar {
+      width: 340px;
+      background: #f8fafc;
+      border-right: 1px solid #e8ecf1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .sidebar-header {
+      padding: 16px 20px;
+      background: white;
+      border-bottom: 1px solid #e8ecf1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .sidebar-header h1 { font-size: 20px; font-weight: 800; color: #1a2332; margin-bottom: 2px; letter-spacing: -0.3px; }
+    .sidebar-header p { font-size: 12px; color: #95a5a6; }
+    .btn-refresh {
+      background: #3498db;
+      color: white;
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .btn-refresh:hover { background: #2980b9; }
+    .btn-refresh:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .stats-box {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      padding: 12px 16px;
+      background: white;
+      border-bottom: 1px solid #e8ecf1;
+      flex-shrink: 0;
+    }
+    .stat-card {
+      background: #f8fafc;
+      border-radius: 8px;
+      padding: 10px 6px;
+      text-align: center;
+      border: 1px solid #eef2f7;
+    }
+    .stat-num { font-size: 22px; font-weight: 800; line-height: 1; margin-bottom: 3px; }
+    .stat-num.naranja { color: #e67e22; }
+    .stat-num.verde { color: #27ae60; }
+    .stat-num.rojo { color: #e74c3c; }
+    .stat-label { font-size: 10px; color: #95a5a6; text-transform: uppercase; font-weight: 800; letter-spacing: 0.2px; }
+
+    .menu-vertical {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 8px 10px;
+      background: white;
+      border-bottom: 1px solid #e8ecf1;
+      flex-shrink: 0;
+    }
+    .menu-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-radius: 8px;
+      color: #5a6c7d;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .menu-item:hover { background: #f0f3f7; }
+    .menu-item.activo { background: #2874a6; color: white; }
+    .menu-item-izq { display: flex; align-items: center; gap: 10px; }
+    .menu-item-icono { font-size: 15px; width: 20px; text-align: center; }
+    .menu-item-badge {
+      background: rgba(0,0,0,0.08);
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      min-width: 22px;
+      text-align: center;
+      font-weight: 800;
+    }
+    .menu-item.activo .menu-item-badge { background: rgba(255,255,255,0.25); }
+
+    .sidebar-lista {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 12px;
+    }
+    .sidebar-lista::-webkit-scrollbar { width: 5px; }
+    .sidebar-lista::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 3px; }
+
+    .ticket-item {
+      padding: 12px 14px;
+      border-radius: 10px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      background: white;
+      border: 1px solid #f0f3f7;
+      border-left-width: 4px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      min-height: 60px;
+      transition: all 0.15s;
+    }
+    .ticket-item:hover { box-shadow: 0 2px 6px rgba(0,0,0,0.06); transform: translateX(2px); }
+    .ticket-item.seleccionado {
+      background: linear-gradient(135deg, #ebf5fb, #d6eaf8);
+      border-color: #aed6f1;
+      box-shadow: 0 2px 8px rgba(52,152,219,0.15);
+    }
+    .ticket-item.prioridad-alta { border-left-color: #e74c3c; }
+    .ticket-item.prioridad-media { border-left-color: #f1c40f; }
+    .ticket-item.prioridad-baja { border-left-color: #27ae60; }
+    .ticket-item.prioridad-archivado { border-left-color: #95a5a6; opacity: 0.75; }
+
+    .avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 15px;
+      color: white;
+      flex-shrink: 0;
+    }
+    .avatar.alta { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+    .avatar.media { background: linear-gradient(135deg, #f39c12, #d68910); }
+    .avatar.baja { background: linear-gradient(135deg, #27ae60, #1e8449); }
+    .avatar.archivado { background: linear-gradient(135deg, #95a5a6, #7f8c8d); }
+
+    .ticket-info { flex: 1; min-width: 0; }
+    .ticket-titulo {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1a2332;
+      line-height: 1.35;
+      margin-bottom: 5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .ticket-meta { display: flex; gap: 8px; font-size: 11px; color: #7f8c8d; align-items: center; flex-wrap: wrap; }
+    .ticket-urgencia {
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+    .ticket-urgencia.alta { background: #fde8e6; color: #c0392b; }
+    .ticket-urgencia.media { background: #fef9e7; color: #b7950b; }
+    .ticket-urgencia.baja { background: #e8f8f0; color: #1e8449; }
+    .ticket-urgencia.archivado { background: #f0f3f7; color: #7f8c8d; }
+
+    /* ============ DETALLE ============ */
+    .detalle { flex: 1; display: flex; flex-direction: column; background: #f8fafc; overflow: hidden; }
+    .detalle-header { background: white; padding: 16px 20px; border-bottom: 1px solid #e8ecf1; flex-shrink: 0; }
+    .detalle-header-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; }
+    .detalle-titulo-wrap { display: flex; gap: 12px; align-items: flex-start; flex: 1; }
+    .avatar-grande {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 18px;
+      color: white;
+      flex-shrink: 0;
+    }
+    .avatar-grande.alta { background: linear-gradient(135deg, #e74c3c, #c0392b); box-shadow: 0 4px 12px rgba(231,76,60,0.3); }
+    .avatar-grande.media { background: linear-gradient(135deg, #f39c12, #d68910); box-shadow: 0 4px 12px rgba(243,156,18,0.3); }
+    .avatar-grande.baja { background: linear-gradient(135deg, #27ae60, #1e8449); box-shadow: 0 4px 12px rgba(39,174,96,0.3); }
+    .avatar-grande.archivado { background: linear-gradient(135deg, #95a5a6, #7f8c8d); box-shadow: 0 4px 12px rgba(149,165,166,0.3); }
+
+    .detalle-titulo { font-size: 20px; font-weight: 800; color: #1a2332; line-height: 1.25; margin-bottom: 5px; letter-spacing: -0.3px; }
+    .detalle-meta { display: flex; gap: 14px; font-size: 12px; color: #7f8c8d; flex-wrap: wrap; }
+    .detalle-meta-item { display: flex; align-items: center; gap: 5px; font-weight: 600; }
+    .detalle-urgencia {
+      padding: 6px 14px;
+      border-radius: 14px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      white-space: nowrap;
+      letter-spacing: 0.5px;
+    }
+    .detalle-urgencia.alta { background: #fde8e6; color: #c0392b; }
+    .detalle-urgencia.media { background: #fef9e7; color: #b7950b; }
+    .detalle-urgencia.baja { background: #e8f8f0; color: #1e8449; }
+    .detalle-urgencia.archivado { background: #f0f3f7; color: #7f8c8d; }
+
+    .detalle-body {
+      flex: 1;
+      overflow: hidden;
+      padding: 14px 18px;
+      display: grid;
+      grid-template-columns: 1.8fr 1fr;
+      gap: 14px;
+      min-height: 0;
+    }
+
+    .col-izq {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .col-der {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .seccion {
+      background: white;
+      border-radius: 10px;
+      padding: 14px 16px;
+      border: 1px solid #f0f3f7;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .seccion-notas { flex: 1; overflow: hidden; }
+    .seccion-nota-rapida { flex-shrink: 0; }
+    .seccion-info { flex-shrink: 0; }
+    .seccion-flujo { flex: 1; overflow: hidden; }
+
+    .seccion-titulo {
+      font-size: 10px;
+      font-weight: 800;
+      color: #95a5a6;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
+    }
+    .btn-ver-mas {
+      font-size: 10px;
+      color: #3498db;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 5px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .btn-ver-mas:hover { background: #eff6ff; }
+
+    .seccion-contenido {
+      font-size: 13.5px;
+      color: #2c3e50;
+      line-height: 1.55;
+      word-break: break-word;
+    }
+
+    /* INFO */
+    .info-grid { display: grid; gap: 0; }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      padding: 5px 0;
+      border-bottom: 1px dashed #f0f3f7;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { color: #95a5a6; font-weight: 600; }
+    .info-valor { color: #34495e; font-weight: 700; text-align: right; }
+
+    /* ESTADO BADGE */
+    .estado-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-bottom: 10px;
+      align-self: flex-start;
+    }
+    .estado-badge.pendiente { background: #fef3c7; color: #92400e; }
+    .estado-badge.aprobado { background: #d1fae5; color: #065f46; }
+    .estado-badge.rechazado { background: #fee2e2; color: #991b1b; }
+    .estado-badge.completado { background: #dbeafe; color: #1e40af; }
+    .estado-badge.archivado { background: #e5e7eb; color: #4b5563; }
+
+    /* PROGRESO */
+    .progreso-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      padding: 8px 12px;
+      background: #f8fafc;
+      border-radius: 8px;
+      border: 1px solid #eef2f7;
+    }
+    .progreso-pct { font-size: 13px; font-weight: 800; color: #5a6c7d; min-width: 40px; }
+    .progreso-bar {
+      flex: 1;
+      height: 6px;
+      background: #e8ecf1;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progreso-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #27ae60, #2ecc71);
+      border-radius: 3px;
+      transition: width 0.3s;
+    }
+
+    /* ============ TIMELINE ESTILO HISTORIAL ============ */
+    .timeline-historial {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      flex: 1;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .timeline-historial::-webkit-scrollbar { width: 5px; }
+    .timeline-historial::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 3px; }
+
+    .th-item {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 8px 0 8px 6px;
+      position: relative;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .th-item:not(:last-child)::before {
+      content: '';
+      position: absolute;
+      left: 17px;
+      top: 32px;
+      bottom: -8px;
+      width: 2px;
+      background: #e8ecf1;
+      z-index: 0;
+    }
+    .th-item.completado:not(:last-child)::before { background: #27ae60; }
+    .th-item.activo:not(:last-child)::before { background: #27ae60; }
+
+    .th-dot {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 2px;
+      z-index: 2;
+      border: 2.5px solid white;
+      box-shadow: 0 0 0 2px #e8ecf1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: white;
+      font-weight: 800;
+      box-sizing: content-box;
+      padding: 0;
+      line-height: 1;
+      overflow: visible;
+    }
+    .th-dot.completado { background: #27ae60; box-shadow: 0 0 0 2px #27ae60; }
+    .th-dot.activo {
+      background: #3498db;
+      box-shadow: 0 0 0 2px #3498db, 0 0 0 4px rgba(52,152,219,0.15);
+    }
+    .th-dot.pendiente { background: #f0f3f7; box-shadow: 0 0 0 2px #e0e6ed; }
+    .th-dot.pendiente::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #cbd5e0;
+    }
+    .th-dot.rechazado { background: #e74c3c; box-shadow: 0 0 0 2px #e74c3c; }
+    .th-dot.archivado { background: #95a5a6; box-shadow: 0 0 0 2px #95a5a6; }
+
+    .th-content {
+      flex: 1;
+      min-width: 0;
+      width: 100%;
+    }
+
+    .th-titulo {
+      font-size: 14px;
+      font-weight: 800;
+      color: #1a2332;
+      margin-bottom: 3px;
+      line-height: 1.3;
+    }
+    .th-titulo.pendiente { color: #95a5a6; font-weight: 700; }
+    .th-titulo.activo { color: #3498db; }
+    .th-titulo.rechazado { color: #e74c3c; }
+
+    .th-fecha {
+      font-size: 11px;
+      color: #95a5a6;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .th-fecha.pendiente { color: #bdc3c7; }
+
+    .th-detalle {
+      margin-top: 8px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border-left: 3px solid #e0e6ed;
+      background: #f8fafc;
+      font-size: 12px;
+      color: #5a6c7d;
+      line-height: 1.6;
+      width: 100%;
+    }
+    .th-detalle.aprobado { border-left-color: #27ae60; background: #f0fdf4; color: #065f46; }
+    .th-detalle.completado { border-left-color: #3498db; background: #eff6ff; color: #1e40af; }
+    .th-detalle.rechazado { border-left-color: #e74c3c; background: #fef2f2; color: #991b1b; }
+
+    .th-detalle-line {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+    .th-detalle-line:last-child { margin-bottom: 0; }
+    .th-detalle-icon { font-size: 13px; flex-shrink: 0; margin-top: 1px; }
+    .th-detalle-text { flex: 1; font-size: 12px; font-weight: 600; word-break: break-word; }
+    .th-detalle-link { color: #3498db; text-decoration: underline; font-weight: 700; }
+
+    .th-duracion {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: #5a6c7d;
+      font-weight: 800;
+      background: #f0f3f7;
+      padding: 4px 10px;
+      border-radius: 6px;
+      margin-top: 8px;
+      border: 1px solid #e8ecf1;
+    }
+
+    /* NOTAS SCROLL */
+    .notas-scroll {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 0;
+      padding-right: 4px;
+    }
+    .notas-scroll::-webkit-scrollbar { width: 5px; }
+    .notas-scroll::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 3px; }
+
+    /* NOTA RÁPIDA */
+    .nota-rapida-textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid #e8ecf1;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 13px;
+      color: #34495e;
+      resize: none;
+      min-height: 70px;
+      background: #fafbfc;
+      flex-shrink: 0;
+    }
+    .nota-rapida-textarea:focus { outline: none; border-color: #3498db; background: white; }
+
+    .btn-mini-save {
+      background: #3498db;
+      color: white;
+      border: none;
+      padding: 7px 16px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 7px;
+      align-self: flex-start;
+      transition: all 0.15s;
+    }
+    .btn-mini-save:hover { background: #2980b9; }
+
+    /* FOOTER */
+    .detalle-footer {
+      background: white;
+      padding: 12px 18px;
+      border-top: 1px solid #e8ecf1;
+      flex-shrink: 0;
+    }
+    .acciones-principales { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+    .btn {
+      flex: 1;
+      min-width: 120px;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      color: white;
+      transition: all 0.15s;
+    }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-aprobar { background: linear-gradient(135deg, #27ae60, #229954); }
+    .btn-rechazar { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+    .btn-completar { background: linear-gradient(135deg, #3498db, #2980b9); }
+    .btn-reabrir { background: linear-gradient(135deg, #f39c12, #d68910); }
+
+    .acciones-secundarias { display: flex; gap: 6px; flex-wrap: wrap; }
+    .btn-secundario {
+      flex: 1;
+      min-width: 105px;
+      padding: 10px;
+      border-radius: 9px;
+      border: 1.5px solid #e8ecf1;
+      background: white;
+      color: #5a6c7d;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-secundario:hover { border-color: #3498db; color: #3498db; background: #f0f8ff; }
+    .btn-secundario.wsp { color: #128C7E; border-color: #a8e6cf; background: #f0fdf4; }
+    .btn-secundario.wsp:hover { background: #dcfce7; border-color: #25D366; color: #25D366; }
+    .btn-secundario.peligro { color: #c0392b; border-color: #f5b7b1; }
+    .btn-secundario.peligro:hover { background: #fde8e6; border-color: #c0392b; color: #c0392b; }
+    .btn-secundario.reporte { color: #7c3aed; border-color: #ddd6fe; background: #f5f3ff; }
+    .btn-secundario.reporte:hover { background: #ede9fe; border-color: #8b5cf6; color: #8b5cf6; }
+
+    .vacio { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #95a5a6; text-align: center; padding: 40px; }
+    .vacio-icono { font-size: 64px; margin-bottom: 16px; opacity: 0.5; }
+    .vacio-texto { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+    .vacio-subtexto { font-size: 13px; color: #bdc3c7; }
+    .loading { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; color: #95a5a6; }
+    .spinner { width: 30px; height: 30px; border: 3px solid #e0e6ed; border-top-color: #3498db; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 12px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1a2332;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 10px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      z-index: 1000;
+      opacity: 0;
+      transition: opacity 0.3s;
+      max-width: 90%;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .toast.activo { opacity: 1; }
+    .toast.exito { background: #27ae60; }
+    .toast.error { background: #e74c3c; }
+    .btn-cargando { position: relative; color: transparent !important; }
+    .btn-cargando::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 16px;
+      height: 16px;
+      margin: -8px 0 0 -8px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    /* MODALES */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(26,35,50,0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 16px;
+    }
+    .modal-overlay.activo { display: flex; }
+    .modal {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      width: 100%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal h2 { font-size: 18px; margin-bottom: 8px; color: #1a2332; font-weight: 800; }
+    .modal p { font-size: 13px; color: #7f8c8d; margin-bottom: 16px; line-height: 1.5; }
+    .modal label {
+      display: block;
+      font-size: 11px;
+      font-weight: 800;
+      color: #5a6c7d;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      margin-top: 12px;
+      letter-spacing: 0.3px;
+    }
+    .modal select, .modal textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1.5px solid #e8ecf1;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 14px;
+      background: white;
+      color: #2c3e50;
+    }
+    .modal select:focus, .modal textarea:focus { outline: none; border-color: #3498db; }
+    .modal input[type="file"] {
+      width: 100%;
+      padding: 12px;
+      border: 2px dashed #e8ecf1;
+      border-radius: 10px;
+      margin-bottom: 16px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .modal textarea { resize: vertical; min-height: 80px; }
+    .modal-acciones { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+    .preview-img { max-width: 100%; max-height: 200px; border-radius: 8px; margin-bottom: 16px; display: none; }
+    .preview-img.activo { display: block; }
+    .alerta-peligro {
+      background: #fde8e6;
+      border-left: 4px solid #e74c3c;
+      padding: 14px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      color: #922b21;
+      line-height: 1.5;
+    }
+    .alerta-info {
+      background: #f0fdf4;
+      border-left: 4px solid #25D366;
+      padding: 14px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      color: #128C7E;
+      line-height: 1.5;
+    }
+
+    .btn-volver {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      background: transparent;
+      border: none;
+      padding: 6px 0;
+      font-size: 15px;
+      font-weight: 700;
+      color: #3498db;
+      cursor: pointer;
+      margin-bottom: 12px;
+    }
+
+    /* ========== RESPONSIVE MÓVIL ========== */
+    @media (max-width: 1024px) {
+      body { overflow: hidden; }
+      .app { flex-direction: column; height: 100dvh; position: relative; }
+      .sidebar {
+        width: 100%;
+        height: 100dvh;
+        border-right: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 10;
+      }
+      .sidebar-header { padding: 14px 16px; }
+      .sidebar-header h1 { font-size: 20px; }
+      .sidebar-header p { display: none; }
+      .btn-refresh { width: 40px; height: 40px; font-size: 16px; }
+      .stats-box { padding: 10px 12px; gap: 6px; }
+      .stat-num { font-size: 20px; }
+      .stat-label { font-size: 9px; }
+
+      .menu-vertical {
+        flex-direction: row;
+        overflow-x: auto;
+        overflow-y: hidden;
+        gap: 6px;
+        padding: 10px 14px;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+      }
+      .menu-vertical::-webkit-scrollbar { display: none; }
+      .menu-item {
+        flex-shrink: 0;
+        padding: 8px 14px;
+        border-radius: 18px;
+        background: #f0f3f7;
+        font-size: 13px;
+        margin-bottom: 0;
+        white-space: nowrap;
+      }
+      .menu-item.activo { background: #2874a6; }
+      .sidebar-lista { padding: 10px 12px; }
+      .ticket-item { padding: 12px 14px; min-height: 60px; }
+      .avatar { width: 36px; height: 36px; font-size: 14px; }
+      .ticket-titulo { font-size: 14px; }
+      .ticket-meta { font-size: 10px; }
+
+      .detalle {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100dvh;
+        z-index: 20;
+        background: #f8fafc;
+        transform: translateX(100%);
+        transition: transform 0.25s ease;
+      }
+      body.viendo-detalle .detalle { transform: translateX(0); }
+      .btn-volver { display: inline-flex !important; }
+      .detalle-header { padding: 16px; }
+      .detalle-header-top { flex-direction: column; gap: 10px; }
+      .avatar-grande { width: 44px; height: 44px; font-size: 18px; }
+      .detalle-titulo { font-size: 18px; }
+      .detalle-urgencia { align-self: flex-start; }
+
+      .detalle-body {
+        padding: 12px;
+        grid-template-columns: 1fr;
+        gap: 12px;
+        overflow-y: auto;
+        display: block;
+      }
+      .col-izq, .col-der { display: block; }
+      .col-izq .seccion, .col-der .seccion { margin-bottom: 12px; }
+      .seccion-notas { flex: none; }
+      .notas-scroll { max-height: 300px; }
+      .timeline-historial { max-height: none; overflow-y: visible; }
+
+      .detalle-footer {
+        padding: 10px 12px;
+        padding-bottom: calc(10px + env(safe-area-inset-bottom));
+      }
+      .acciones-principales .btn { min-width: auto; padding: 11px 8px; font-size: 12px; }
+      .btn-secundario { min-width: auto; padding: 9px 6px; font-size: 11px; }
+      input, textarea, select, button { font-size: 16px; }
+      .modal { border-radius: 16px; padding: 20px; max-height: 95vh; }
+    }
+
+    @media (max-width: 400px) {
+      .sidebar-header h1 { font-size: 18px; }
+      .ticket-titulo { font-size: 13px; }
+      .detalle-titulo { font-size: 16px; }
+      .acciones-principales .btn { padding: 10px 6px; font-size: 11px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app">
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div><h1>🎟️ Tickets</h1><p>Sistema de solicitudes</p></div>
+      <button class="btn-refresh" id="btn-refresh" onclick="cargarTickets()">🔄</button>
+    </div>
+    <div class="stats-box">
+      <div class="stat-card"><div class="stat-num naranja" id="stat-pendientes">0</div><div class="stat-label">PEND.</div></div>
+      <div class="stat-card"><div class="stat-num verde" id="stat-aprobados">0</div><div class="stat-label">APROB.</div></div>
+      <div class="stat-card"><div class="stat-num rojo" id="stat-rechazados">0</div><div class="stat-label">RECH.</div></div>
+    </div>
+    <div class="menu-vertical">
+      <div class="menu-item activo" id="menu-pendiente" onclick="cambiarTab('Pendiente')">
+        <div class="menu-item-izq"><span class="menu-item-icono">📥</span><span>Pendientes</span></div>
+        <span class="menu-item-badge" id="badge-pendientes">0</span>
+      </div>
+      <div class="menu-item" id="menu-aprobado" onclick="cambiarTab('Aprobado')">
+        <div class="menu-item-izq"><span class="menu-item-icono">✅</span><span>Aprobados</span></div>
+        <span class="menu-item-badge" id="badge-aprobados">0</span>
+      </div>
+      <div class="menu-item" id="menu-rechazado" onclick="cambiarTab('Rechazado')">
+        <div class="menu-item-izq"><span class="menu-item-icono">❌</span><span>Rechazados</span></div>
+        <span class="menu-item-badge" id="badge-rechazados">0</span>
+      </div>
+      <div class="menu-item" id="menu-completado" onclick="cambiarTab('Completado')">
+        <div class="menu-item-izq"><span class="menu-item-icono">✔️</span><span>Completados</span></div>
+        <span class="menu-item-badge" id="badge-completados">0</span>
+      </div>
+      <div class="menu-item" id="menu-archivado" onclick="cambiarTab('Archivado')">
+        <div class="menu-item-izq"><span class="menu-item-icono">📦</span><span>Archivados</span></div>
+        <span class="menu-item-badge" id="badge-archivados">0</span>
+      </div>
+    </div>
+    <div class="sidebar-lista" id="sidebar-lista">
+      <div class="loading"><div class="spinner"></div><div>Cargando...</div></div>
+    </div>
+  </div>
+
+  <div class="detalle" id="detalle">
+    <div class="vacio">
+      <div class="vacio-icono">👈</div>
+      <div class="vacio-texto">Selecciona un ticket</div>
+      <div class="vacio-subtexto">Elige una solicitud de la lista</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- MODAL EVIDENCIA -->
+<div class="modal-overlay" id="modal-evidencia">
+  <div class="modal">
+    <h2>✔️ Completar ticket</h2>
+    <p>La imagen es <strong>opcional</strong>. Puedes completar sin adjuntar archivo.</p>
+    <input type="file" id="input-evidencia" accept="image/*" onchange="previewImagen(event)">
+    <img id="preview-img" class="preview-img" alt="Preview">
+    <textarea id="notas-admin" placeholder="Notas adicionales (opcional)"></textarea>
+    <div class="modal-acciones">
+      <button class="btn btn-completar" id="btn-subir" onclick="confirmarEvidencia()">📤 Completar</button>
+      <button class="btn-secundario" onclick="cerrarModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NOTA -->
+<div class="modal-overlay" id="modal-nota">
+  <div class="modal">
+    <h2>📝 Nota de administrador</h2>
+    <p>Escribe una nota interna sobre este ticket (solo visible para ti)</p>
+    <textarea id="input-nota" placeholder="Ej: El paciente ya fue atendido..." style="min-height: 120px;"></textarea>
+    <div class="modal-acciones">
+      <button class="btn btn-completar" id="btn-guardar-nota" onclick="guardarNota()">💾 Guardar nota</button>
+      <button class="btn-secundario" onclick="cerrarModalNota()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL BORRAR -->
+<div class="modal-overlay" id="modal-borrar">
+  <div class="modal">
+    <h2>🗑️ Borrar ticket</h2>
+    <div class="alerta-peligro">
+      <strong>⚠️ Esta acción es permanente e irreversible.</strong><br>
+      Se eliminará el ticket de la hoja de cálculo y también se borrará el archivo de evidencia de Drive (si existe).
+    </div>
+    <p id="borrar-detalle"></p>
+    <div class="modal-acciones">
+      <button class="btn btn-rechazar" id="btn-confirmar-borrar" onclick="confirmarBorrar()">🗑️ Sí, borrar</button>
+      <button class="btn-secundario" onclick="cerrarModalBorrar()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL WHATSAPP -->
+<div class="modal-overlay" id="modal-wsp">
+  <div class="modal">
+    <h2>📱 Notificar por WhatsApp</h2>
+    <div class="alerta-info">
+      Al tocar <strong>Abrir WhatsApp</strong>, se abrirá con el mensaje pre-armado. Solo presiona <strong>Enviar</strong>.
+    </div>
+    <label for="wsp-contacto">Destinatario</label>
+    <select id="wsp-contacto">
+      <option value="">Cargando contactos...</option>
+    </select>
+    <label for="wsp-mensaje">Mensaje</label>
+    <textarea id="wsp-mensaje" style="min-height: 180px;"></textarea>
+    <div class="modal-acciones">
+      <button class="btn btn-completar" id="btn-enviar-wsp" onclick="enviarWhatsApp()">📱 Abrir WhatsApp</button>
+      <button class="btn-secundario" onclick="cerrarModalWsp()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL REPORTE A4 -->
+<div class="modal-overlay" id="modal-reporte" style="z-index: 200;">
+  <div class="modal" style="max-width: 900px; max-height: 95vh; padding: 0; background: #e8ecf1;">
+    <div style="padding: 14px 20px; background: white; border-bottom: 1px solid #e8ecf1; display: flex; justify-content: space-between; align-items: center;">
+      <h2 style="font-size: 16px; color: #1a2332; margin: 0;">📄 Vista previa del reporte</h2>
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-completar" style="padding: 8px 16px; font-size: 12px; flex: none; min-width: auto;" onclick="imprimirReporte()">🖨️ Imprimir / Guardar PDF</button>
+        <button class="btn-secundario" style="padding: 8px 16px; font-size: 12px; min-width: auto;" onclick="cerrarModalReporte()">Cerrar</button>
+      </div>
+    </div>
+    <div id="reporte-contenedor" style="padding: 20px; overflow-y: auto; max-height: calc(95vh - 60px); display: flex; justify-content: center; background: #e8ecf1;">
+    </div>
+  </div>
+</div>
+
+<script>
+  const API_URL = 'https://script.google.com/macros/s/AKfycbyyROD46axfnAvmoBqNhAoRLo-IsJDSK9fGo6T8eZVZjlOg9ZxYikXrXUmfHMF3zWXR/exec';
+  const API_KEY = 'kairo_secret_2026_xyz123';
+
+  let todosLosTickets = [];
+  let contactosCache = [];
+  let tabActual = 'Pendiente';
+  let ticketSeleccionado = null;
+  let procesando = false;
+  let cargando = false;
+  let archivoEvidencia = null;
+
+  function guardarCache(tickets) {
+    try { localStorage.setItem('kairo_tickets_cache', JSON.stringify({ data: tickets, timestamp: Date.now() })); } catch (e) {}
+  }
+  function leerCache() {
+    try {
+      const raw = localStorage.getItem('kairo_tickets_cache');
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+
+  function mostrarToast(mensaje, tipo) {
+    const toast = document.getElementById('toast');
+    toast.textContent = mensaje;
+    toast.className = 'toast activo';
+    if (tipo) toast.classList.add(tipo);
+    setTimeout(() => toast.classList.remove('activo'), 3000);
+  }
+
+  function obtenerInicial(nombre) {
+    if (!nombre) return '?';
+    const partes = nombre.trim().split(/\s+/);
+    if (partes.length >= 2) return (partes[0][0] + partes[1][0]).toUpperCase();
+    return nombre[0].toUpperCase();
+  }
+
+  function tiempoTranscurrido(fecha) {
+    if (!fecha) return '';
+    const ahora = new Date();
+    const f = new Date(fecha);
+    if (isNaN(f.getTime())) return '';
+    const diff = ahora - f;
+    const min = Math.floor(diff / 60000);
+    const hrs = Math.floor(diff / 3600000);
+    const dias = Math.floor(diff / 86400000);
+    if (min < 60) return min + 'm';
+    if (hrs < 24) return hrs + 'h';
+    return dias + 'd';
+  }
+
+  function calcularDuracion(fechaInicio, fechaFin) {
+    if (!fechaInicio || !fechaFin) return '';
+    try {
+      const f1 = new Date(fechaInicio);
+      const f2 = new Date(fechaFin);
+      if (isNaN(f1.getTime()) || isNaN(f2.getTime())) return '';
+      const diff = f2 - f1;
+      const min = Math.floor(diff / 60000);
+      const hrs = Math.floor(min / 60);
+      const dias = Math.floor(hrs / 24);
+      if (dias > 0) {
+        const hrsRestantes = hrs % 24;
+        return dias + 'd ' + hrsRestantes + 'h';
+      }
+      if (hrs > 0) {
+        const minRestantes = min % 60;
+        return hrs + 'h ' + minRestantes + 'min';
+      }
+      return min + 'min';
+    } catch (e) { return ''; }
+  }
+
+  function formatearFecha(fecha) {
+    if (!fecha) return '';
+    try {
+      const f = new Date(fecha);
+      if (isNaN(f.getTime())) return String(fecha);
+      return f.toLocaleDateString('es-PE') + ' · ' + f.toLocaleTimeString('es-PE', {hour:'2-digit', minute:'2-digit'});
+    } catch (e) { return String(fecha); }
+  }
+
+  function obtenerPrioridad(u) {
+    u = (u || '').toLowerCase();
+    if (u.includes('alta') || u.includes('crítica')) return 'alta';
+    if (u.includes('media')) return 'media';
+    if (u.includes('archiv')) return 'archivado';
+    return 'baja';
+  }
+
+  function obtenerEstadoClase(estado) {
+    const e = (estado || '').toLowerCase();
+    if (e.includes('aprob')) return 'aprobado';
+    if (e.includes('rechaz')) return 'rechazado';
+    if (e.includes('complet')) return 'completado';
+    if (e.includes('archiv')) return 'archivado';
+    return 'pendiente';
+  }
+
+  function obtenerEmojiEstado(estado) {
+    const e = (estado || '').toLowerCase();
+    if (e.includes('aprob')) return '✅';
+    if (e.includes('rechaz')) return '❌';
+    if (e.includes('complet')) return '✔️';
+    if (e.includes('archiv')) return '📦';
+    return '⏳';
+  }
+
+  function cargarTickets() {
+    if (cargando) return;
+    const cache = leerCache();
+    if (cache && cache.data && todosLosTickets.length === 0) {
+      todosLosTickets = cache.data;
+      actualizarBadges();
+      renderizarLista();
+    }
+
+    cargando = true;
+    const btnRefresh = document.getElementById('btn-refresh');
+    btnRefresh.disabled = true;
+    btnRefresh.textContent = '⏳';
+
+    if (!cache || todosLosTickets.length === 0) {
+      document.getElementById('sidebar-lista').innerHTML = 
+        '<div class="loading"><div class="spinner"></div><div>Cargando...</div></div>';
+    }
+
+    fetch(API_URL + '?key=' + API_KEY)
+      .then(r => r.text())
+      .then(text => {
+        try {
+          const data = JSON.parse(text);
+          mostrarTickets(data);
+          if (Array.isArray(data)) guardarCache(data);
+        } catch (e) {
+          if (!cache) mostrarError({ message: 'Respuesta inválida' });
+        }
+        cargando = false;
+        btnRefresh.disabled = false;
+        btnRefresh.textContent = '🔄';
+      })
+      .catch(error => {
+        if (!cache) mostrarError({ message: error.message });
+        cargando = false;
+        btnRefresh.disabled = false;
+        btnRefresh.textContent = '🔄';
+      });
+  }
+
+  function cargarContactos() {
+    if (contactosCache.length > 0) return Promise.resolve(contactosCache);
+    return fetch(API_URL + '?key=' + API_KEY + '&action=contacts')
+      .then(r => r.text())
+      .then(text => {
+        try {
+          const data = JSON.parse(text);
+          if (Array.isArray(data)) { contactosCache = data; return data; }
+          return [];
+        } catch (e) { return []; }
+      })
+      .catch(() => []);
+  }
+
+  function mostrarTickets(tickets) {
+    todosLosTickets = tickets || [];
+    if (todosLosTickets.error) { mostrarError({ message: todosLosTickets.error }); return; }
+    actualizarBadges();
+    renderizarLista();
+    if (ticketSeleccionado) {
+      const actualizado = todosLosTickets.find(t => t.fila === ticketSeleccionado.fila);
+      if (actualizado) {
+        ticketSeleccionado = actualizado;
+        renderizarDetalle();
+      } else {
+        ticketSeleccionado = null;
+        renderizarDetalleVacio();
+      }
+    }
+  }
+
+  function mostrarError(error) {
+    document.getElementById('sidebar-lista').innerHTML =
+      '<div class="vacio"><div class="vacio-icono">❌</div>' +
+      '<div class="vacio-texto">Error</div>' +
+      '<div class="vacio-subtexto">' + (error.message || 'Error') + '</div>' +
+      '<button class="btn btn-completar" style="margin-top:16px;max-width:200px;" onclick="cargarTickets()">🔄 Reintentar</button></div>';
+  }
+
+  function actualizarBadges() {
+    const t = todosLosTickets || [];
+    const pend = t.filter(x => x.estado === 'Pendiente').length;
+    const aprob = t.filter(x => x.estado === 'Aprobado').length;
+    const rech = t.filter(x => x.estado === 'Rechazado').length;
+    const comp = t.filter(x => x.estado === 'Completado').length;
+    const arch = t.filter(x => x.estado === 'Archivado').length;
+
+    document.getElementById('badge-pendientes').textContent = pend;
+    document.getElementById('badge-aprobados').textContent = aprob;
+    document.getElementById('badge-rechazados').textContent = rech;
+    document.getElementById('badge-completados').textContent = comp;
+    document.getElementById('badge-archivados').textContent = arch;
+    document.getElementById('stat-pendientes').textContent = pend;
+    document.getElementById('stat-aprobados').textContent = aprob;
+    document.getElementById('stat-rechazados').textContent = rech;
+  }
+
+  function cambiarTab(estado) {
+    tabActual = estado;
+    document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('activo'));
+    document.getElementById('menu-' + estado.toLowerCase()).classList.add('activo');
+    renderizarLista();
+  }
+
+  function renderizarLista() {
+    const t = todosLosTickets || [];
+    let filtrados = t.filter(x => x.estado === tabActual);
+    const orden = { 'alta': 1, 'media': 2, 'baja': 3 };
+    filtrados.sort((a, b) => (orden[obtenerPrioridad(a.urgencia)] || 4) - (orden[obtenerPrioridad(b.urgencia)] || 4));
+
+    const contenedor = document.getElementById('sidebar-lista');
+    if (filtrados.length === 0) {
+      contenedor.innerHTML = '<div class="vacio"><div class="vacio-icono">✨</div><div class="vacio-texto">No hay tickets</div><div class="vacio-subtexto">en esta categoría</div></div>';
+      return;
+    }
+
+    contenedor.innerHTML = filtrados.map(ticket => {
+      const p = obtenerPrioridad(ticket.urgencia);
+      const sel = ticketSeleccionado && ticketSeleccionado.fila === ticket.fila;
+      const fecha = ticket.fecha ? new Date(ticket.fecha).toLocaleDateString('es-PE', {day:'2-digit',month:'2-digit'}) : '';
+      const inicial = obtenerInicial(ticket.nombre);
+      const tiempo = tiempoTranscurrido(ticket.timestamp);
+
+      return '<div class="ticket-item prioridad-' + p + ' ' + (sel ? 'seleccionado' : '') + '" onclick="seleccionarTicket(' + ticket.fila + ')">' +
+        '<div class="avatar ' + p + '">' + inicial + '</div>' +
+        '<div class="ticket-info">' +
+          '<div class="ticket-titulo">' + ticket.solicitud + '</div>' +
+          '<div class="ticket-meta">' +
+            '<span class="ticket-urgencia ' + p + '">' + (ticket.urgencia || 'Baja') + '</span>' +
+            (fecha ? '<span>📅 ' + fecha + '</span>' : '') +
+            (tiempo ? '<span>🕐 ' + tiempo + '</span>' : '') +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function seleccionarTicket(fila) {
+    ticketSeleccionado = (todosLosTickets || []).find(t => t.fila === fila);
+    renderizarLista();
+    renderizarDetalle();
+    if (window.innerWidth <= 1024) document.body.classList.add('viendo-detalle');
+  }
+
+  function volverALista() {
+    document.body.classList.remove('viendo-detalle');
+  }
+
+  function renderizarDetalleVacio() {
+    document.getElementById('detalle').innerHTML = 
+      '<div class="vacio">' +
+        '<div class="vacio-icono">👈</div>' +
+        '<div class="vacio-texto">Selecciona un ticket</div>' +
+        '<div class="vacio-subtexto">Elige una solicitud de la lista</div>' +
+      '</div>';
+  }
+
+  function renderizarDetalle() {
+    const t = ticketSeleccionado;
+    if (!t) { renderizarDetalleVacio(); return; }
+
+    const p = obtenerPrioridad(t.urgencia);
+    const fecha = t.fecha ? new Date(t.fecha).toLocaleDateString('es-PE') : 'Sin fecha';
+    const inicial = obtenerInicial(t.nombre);
+    const tiempo = tiempoTranscurrido(t.timestamp);
+    const estadoClase = obtenerEstadoClase(t.estado);
+
+    const timelineHTML = generarTimelineHTML(t);
+
+    let acciones = '';
+    if (t.estado === 'Pendiente') {
+      acciones = '<button class="btn btn-aprobar" onclick="cambiarEstado(\'Aprobado\', this)">✅ Aprobar</button><button class="btn btn-rechazar" onclick="cambiarEstado(\'Rechazado\', this)">❌ Rechazar</button>';
+    } else if (t.estado === 'Aprobado') {
+      acciones = '<button class="btn btn-completar" onclick="abrirModalEvidencia()">✔️ Completar</button><button class="btn btn-rechazar" onclick="cambiarEstado(\'Rechazado\', this)">❌ Rechazar</button><button class="btn btn-reabrir" onclick="cambiarEstado(\'Pendiente\', this)">🔄 Reabrir</button>';
+    } else if (t.estado === 'Rechazado') {
+      acciones = '<button class="btn btn-aprobar" onclick="cambiarEstado(\'Aprobado\', this)">✅ Aprobar</button><button class="btn btn-reabrir" onclick="cambiarEstado(\'Pendiente\', this)">🔄 Reabrir</button>';
+    } else if (t.estado === 'Completado') {
+      acciones = '<button class="btn btn-reabrir" onclick="cambiarEstado(\'Pendiente\', this)">🔄 Reabrir</button>';
+    } else if (t.estado === 'Archivado') {
+      acciones = '<button class="btn btn-reabrir" onclick="cambiarEstado(\'Pendiente\', this)">🔄 Restaurar</button>';
+    }
+
+    let accionesSec = '';
+    if (t.estado !== 'Archivado') {
+      accionesSec += '<button class="btn-secundario wsp" onclick="abrirModalWsp()">📱 WhatsApp</button>';
+    }
+    accionesSec += '<button class="btn-secundario reporte" onclick="abrirModalReporte()">📄 Reporte</button>';
+    accionesSec += '<button class="btn-secundario" onclick="abrirModalNota()">📝 Nota admin</button>';
+    if (t.estado !== 'Archivado') {
+      accionesSec += '<button class="btn-secundario" onclick="archivarTicket()">📦 Archivar</button>';
+    }
+    accionesSec += '<button class="btn-secundario peligro" onclick="abrirModalBorrar()">🗑️ Borrar</button>';
+
+    document.getElementById('detalle').innerHTML = 
+      '<div class="detalle-header">' +
+        '<button class="btn-volver" onclick="volverALista()">← Volver a la lista</button>' +
+        '<div class="detalle-header-top">' +
+          '<div class="detalle-titulo-wrap">' +
+            '<div class="avatar-grande ' + p + '">' + inicial + '</div>' +
+            '<div style="flex:1;">' +
+              '<div class="detalle-titulo">' + t.solicitud + '</div>' +
+              '<div class="detalle-meta">' +
+                '<span class="detalle-meta-item">👤 ' + t.nombre + '</span>' +
+                '<span class="detalle-meta-item">📅 ' + fecha + '</span>' +
+                '<span class="detalle-meta-item">🆔 #' + (t.fila - 1) + '</span>' +
+                (tiempo ? '<span class="detalle-meta-item">🕐 Hace ' + tiempo + '</span>' : '') +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="detalle-urgencia ' + p + '">' + t.urgencia + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="detalle-body">' +
+        '<div class="col-izq">' +
+          '<div class="seccion seccion-notas">' +
+            '<div class="seccion-titulo">' +
+              '<span>📝 Notas del solicitante</span>' +
+            '</div>' +
+            '<div class="notas-scroll">' +
+              '<div class="seccion-contenido">' + (t.notas || 'Sin notas') + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="seccion seccion-nota-rapida">' +
+            '<div class="seccion-titulo">💬 Nota rápida</div>' +
+            '<textarea class="nota-rapida-textarea" id="nota-rapida" placeholder="Escribe una nota rápida...">' + (t.notasAdmin || '') + '</textarea>' +
+            '<button class="btn-mini-save" onclick="guardarNotaRapida()">💾 Guardar nota</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="col-der">' +
+          '<div class="seccion seccion-info">' +
+            '<div class="seccion-titulo">👤 Información</div>' +
+            '<div class="info-grid">' +
+              '<div class="info-row"><span class="info-label">Solicitante</span><span class="info-valor">' + t.nombre + '</span></div>' +
+              '<div class="info-row"><span class="info-label">Fecha</span><span class="info-valor">' + fecha + '</span></div>' +
+              '<div class="info-row"><span class="info-label">Ticket</span><span class="info-valor">#' + (t.fila - 1) + '</span></div>' +
+              '<div class="info-row"><span class="info-label">Estado</span><span class="info-valor">' + t.estado + '</span></div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="seccion seccion-flujo">' +
+            '<div class="seccion-titulo">📊 Estado y flujo</div>' +
+            '<div class="estado-badge ' + estadoClase + '">' + obtenerEmojiEstado(t.estado) + ' ' + t.estado.toUpperCase() + '</div>' +
+            timelineHTML +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="detalle-footer">' +
+        '<div class="acciones-principales">' + acciones + '</div>' +
+        '<div class="acciones-secundarias">' + accionesSec + '</div>' +
+      '</div>';
+  }
+
+  // ============ GENERAR TIMELINE ESTILO HISTORIAL ============
+  function generarTimelineHTML(t) {
+    let progreso = 25;
+    if (t.estado === 'Aprobado') progreso = 50;
+    else if (t.estado === 'Rechazado' || t.estado === 'Completado' || t.estado === 'Archivado') progreso = 100;
+
+    let duracionTotal = '';
+    if (t.timestamp && t.fechaCambio) {
+      duracionTotal = calcularDuracion(t.timestamp, t.fechaCambio);
+    }
+
+    let html = 
+      '<div class="progreso-wrap">' +
+        '<span class="progreso-pct">' + progreso + '%</span>' +
+        '<div class="progreso-bar">' +
+          '<div class="progreso-fill" style="width: ' + progreso + '%"></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="timeline-historial">';
+
+    const esPendiente = t.estado === 'Pendiente';
+
+    // PASO 1: TICKET CREADO
+    html += 
+      '<div class="th-item completado">' +
+        '<div class="th-dot ' + (esPendiente ? 'activo' : 'completado') + '">' + (esPendiente ? '●' : '✓') + '</div>' +
+        '<div class="th-content">' +
+          '<div class="th-titulo ' + (esPendiente ? 'activo' : '') + '">Ticket creado</div>' +
+          '<div class="th-fecha">📅 ' + formatearFecha(t.timestamp) + '</div>' +
+        '</div>' +
+      '</div>';
+
+    // PENDIENTE
+    if (t.estado === 'Pendiente') {
+      html += 
+        '<div class="th-item">' +
+          '<div class="th-dot pendiente"></div>' +
+          '<div class="th-content">' +
+            '<div class="th-titulo pendiente">Aprobación</div>' +
+            '<div class="th-fecha pendiente">⏳ Esperando revisión</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="th-item">' +
+          '<div class="th-dot pendiente"></div>' +
+          '<div class="th-content">' +
+            '<div class="th-titulo pendiente">Completado</div>' +
+            '<div class="th-fecha pendiente">⏳ Pendiente</div>' +
+          '</div>' +
+        '</div>';
+    }
+
+    // RECHAZADO
+    else if (t.estado === 'Rechazado') {
+      html += 
+        '<div class="th-item completado activo">' +
+          '<div class="th-dot rechazado">✕</div>' +
+          '<div class="th-content">' +
+            '<div class="th-titulo rechazado">Rechazado</div>' +
+            '<div class="th-fecha">📅 ' + formatearFecha(t.fechaCambio) + '</div>' +
+            '<div class="th-detalle rechazado">' +
+              '<div class="th-detalle-line">' +
+                '<span class="th-detalle-icon">👤</span>' +
+                '<span class="th-detalle-text">Cristhian · Coordinador</span>' +
+              '</div>' +
+              (t.notasAdmin ? 
+                '<div class="th-detalle-line">' +
+                  '<span class="th-detalle-icon">📝</span>' +
+                  '<span class="th-detalle-text"><strong>Motivo:</strong> ' + t.notasAdmin + '</span>' +
+                '</div>' 
+              : '') +
+            '</div>' +
+            (duracionTotal ? '<div class="th-duracion">⏱️ Total: ' + duracionTotal + '</div>' : '') +
+          '</div>' +
+        '</div>';
+    }
+
+    // APROBADO
+    else if (t.estado === 'Aprobado') {
+      html += 
+        '<div class="th-item completado activo">' +
+          '<div class="th-dot activo">●</div>' +
+          '<div class="th-content">' +
+            '<div class="th-titulo activo">Aprobado</div>' +
+            '<div class="th-fecha">📅 ' + formatearFecha(t.fechaCambio) + '</div>' +
+            '<div class="th-detalle aprobado">' +
+              '<div class="th-detalle-line">' +
+                '<span class="th-detalle-icon">👤</span>' +
+                '<span class="th-detalle-text">Cristhian · Coordinador</span>' +
+              '</div>' +
+              (t.notasAdmin ? 
+                '<div class="th-detalle-line">' +
+                  '<span class="th-detalle-icon">💬</span>' +
+                  '<span class="th-detalle-text">' + t.notasAdmin + '</span>' +
+                '</div>' 
+              : '') +
+            '</div>' +
+            (duracionTotal ? '<div class="th-duracion">⏱️ ' + duracionTotal + ' desde creación</div>' : '') +
+          '</div>' +
+        '</div>' +
+        '<div class="th-item">' +
+          '<div class="th-dot pendiente"></div>' +
+          '<div class="th-content">' +
+            '<div class="th-titulo pendiente">Completado</div>' +
+            '<div class="th-fecha pendiente">⏳ Pendiente</div>' +
+          '</div>' +
+        '</div>';
+    }
+
+    // COMPLETADO
+    else if (t.estado === 'Completado') {
+      html += 
+        '<div class="th-item completado">' +
+          '<div class="th-dot completado">✓</div>' +
+          '<div class="th-content">' +
+            '<div class="th-titulo">Aprobado</div>' +
+            '<div class="th-fecha">📅 ' + formatearFecha(t.timestamp) + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="th-item completado activo">' +
+          '<div class="th-dot activo">●</div>' +
+          '<div class="th-content">' +
+            '<div class="th-titulo activo">Completado' + (t.evidencia ? ' con evidencia' : '') + '</div>' +
+            '<div class="th-fecha">📅 ' + formatearFecha(t.fechaCambio) + '</div>' +
+            '<div class="th-detalle completado">' +
+              '<div class="th-detalle-line">' +
+                '<span class="th-detalle-icon">👤</span>' +
+                '<span class="th-detalle-text">Cristhian · Coordinador</span>' +
+              '</div>' +
+              (t.evidencia ? 
+                '<div class="th-detalle-line">' +
+                  '<span class="th-detalle-icon">📎</span>' +
+                  '<span class="th-detalle-text"><a href="' + t.evidencia + '" target="_blank" class="th-detalle-link">Ver evidencia</a></span>' +
+                '</div>' 
+              : '') +
+              (t.notasAdmin ? 
+                '<div class="th-detalle-line">' +
+                  '<span class="th-detalle-icon">📝</span>' +
+                  '<span class="th-detalle-text"><strong>Nota:</strong> ' + t.notasAdmin + '</span>' +
+                '</div>' 
+              : '') +
+            '</div>' +
+            (duracionTotal ? '<div class="th-duracion">⏱️ Total: ' + duracionTotal + '</div>' : '') +
+          '</div>' +
+        '</div>' +
+        '<div class="th-item">' +
+          '<div class="th-dot pendiente"></div>' +
+          '<div class="th-content">' +
+            '<div class="th-titulo pendiente">Notificación al solicitante</div>' +
+            '<div class="th-fecha pendiente">⏳ Pendiente de envío por WhatsApp</div>' +
+          '</div>' +
+        '</div>';
+    }
+
+    // ARCHIVADO
+    else if (t.estado === 'Archivado') {
+      html += 
+        '<div class="th-item completado">' +
+          '<div class="th-dot completado">✓</div>' +
+          '<div class="th-content">' +
+            '<div class="th-titulo">Aprobado</div>' +
+            '<div class="th-fecha">📅 ' + formatearFecha(t.timestamp) + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="th-item completado">' +
+          '<div class="th-dot completado">✓</div>' +
+          '<div class="th-content">' +
+            '<div class="th-titulo">Completado</div>' +
+            '<div class="th-fecha">📅 ' + formatearFecha(t.fechaCambio) + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="th-item completado activo">' +
+          '<div class="th-dot archivado">📦</div>' +
+          '<div class="th-content">' +
+            '<div class="th-titulo">Archivado</div>' +
+            '<div class="th-fecha">📅 ' + formatearFecha(t.fechaCambio) + '</div>' +
+          '</div>' +
+        '</div>';
+    }
+
+    html += '</div>';
+    return html;
+  }
+
+  function guardarNotaRapida() {
+    if (!ticketSeleccionado) return;
+    const nota = document.getElementById('nota-rapida').value;
+    const url = API_URL + '?key=' + API_KEY + '&action=note&fila=' + ticketSeleccionado.fila + '&nota=' + encodeURIComponent(nota);
+
+    fetch(url)
+      .then(r => r.text())
+      .then(text => {
+        try {
+          const data = JSON.parse(text);
+          if (data.exito) {
+            mostrarToast('✅ Nota guardada', 'exito');
+            ticketSeleccionado.notasAdmin = nota;
+          } else {
+            mostrarToast('❌ Error: ' + (data.error || 'Desconocido'), 'error');
+          }
+        } catch (e) {
+          mostrarToast('✅ Nota guardada', 'exito');
+          ticketSeleccionado.notasAdmin = nota;
+        }
+      })
+      .catch(error => {
+        mostrarToast('❌ Error: ' + error.message, 'error');
+      });
+  }
+
+  function cambiarEstado(estado, boton) {
+    if (!ticketSeleccionado || procesando) return;
+    procesando = true;
+    const botones = document.querySelectorAll('.acciones-principales .btn');
+    botones.forEach(b => b.disabled = true);
+    if (boton) boton.classList.add('btn-cargando');
+
+    const ticketAnterior = ticketSeleccionado.estado;
+    ticketSeleccionado.estado = estado;
+    const index = todosLosTickets.findIndex(t => t.fila === ticketSeleccionado.fila);
+    if (index !== -1) todosLosTickets[index].estado = estado;
+
+    actualizarBadges();
+    renderizarLista();
+    renderizarDetalle();
+    mostrarToast('⏳ Actualizando a ' + estado + '...');
+
+    const url = API_URL + '?key=' + API_KEY + '&action=update&fila=' + ticketSeleccionado.fila + '&estado=' + encodeURIComponent(estado);
+
+    fetch(url)
+      .then(r => r.text())
+      .then(text => {
+        try {
+          const data = JSON.parse(text);
+          if (data.exito) {
+            mostrarToast('✅ Estado actualizado: ' + estado, 'exito');
+            guardarCache(todosLosTickets);
+            setTimeout(() => cargarTickets(), 500);
+          } else {
+            ticketSeleccionado.estado = ticketAnterior;
+            if (index !== -1) todosLosTickets[index].estado = ticketAnterior;
+            actualizarBadges(); renderizarLista(); renderizarDetalle();
+            mostrarToast('❌ Error: ' + (data.error || 'Desconocido'), 'error');
+          }
+        } catch (e) { mostrarToast('❌ Error al parsear respuesta', 'error'); }
+        procesando = false;
+        botones.forEach(b => b.disabled = false);
+        if (boton) boton.classList.remove('btn-cargando');
+      })
+      .catch(error => {
+        ticketSeleccionado.estado = ticketAnterior;
+        if (index !== -1) todosLosTickets[index].estado = ticketAnterior;
+        actualizarBadges(); renderizarLista(); renderizarDetalle();
+        mostrarToast('❌ Error: ' + error.message, 'error');
+        procesando = false;
+        botones.forEach(b => b.disabled = false);
+        if (boton) boton.classList.remove('btn-cargando');
+      });
+  }
+
+  function archivarTicket() {
+    if (!ticketSeleccionado || procesando) return;
+    procesando = true;
+    mostrarToast('⏳ Archivando ticket...');
+    const url = API_URL + '?key=' + API_KEY + '&action=archive&fila=' + ticketSeleccionado.fila;
+
+    fetch(url)
+      .then(r => r.text())
+      .then(text => {
+        try {
+          const data = JSON.parse(text);
+          if (data.exito) {
+            mostrarToast('📦 Ticket archivado', 'exito');
+            todosLosTickets = todosLosTickets.filter(t => t.fila !== ticketSeleccionado.fila);
+            guardarCache(todosLosTickets);
+            ticketSeleccionado = null;
+            renderizarDetalleVacio();
+            renderizarLista();
+            actualizarBadges();
+            if (window.innerWidth <= 1024) volverALista();
+            setTimeout(() => cargarTickets(), 500);
+          } else {
+            mostrarToast('❌ Error: ' + (data.error || 'Desconocido'), 'error');
+          }
+        } catch (e) {}
+        procesando = false;
+      })
+      .catch(error => {
+        mostrarToast('❌ Error: ' + error.message, 'error');
+        procesando = false;
+      });
+  }
+
+  function abrirModalBorrar() {
+    if (!ticketSeleccionado) return;
+    const t = ticketSeleccionado;
+    document.getElementById('borrar-detalle').innerHTML = 
+      '<strong>Ticket:</strong> ' + t.solicitud + '<br>' +
+      '<strong>De:</strong> ' + t.nombre + '<br>' +
+      (t.evidencia ? '<strong>⚠️ Tiene evidencia adjunta que también se borrará</strong>' : '');
+    document.getElementById('modal-borrar').classList.add('activo');
+  }
+
+  function cerrarModalBorrar() {
+    document.getElementById('modal-borrar').classList.remove('activo');
+  }
+
+  function confirmarBorrar() {
+    if (!ticketSeleccionado || procesando) return;
+    const btn = document.getElementById('btn-confirmar-borrar');
+    btn.disabled = true;
+    btn.textContent = '⏳ Borrando...';
+    procesando = true;
+    const fila = ticketSeleccionado.fila;
+    const url = API_URL + '?key=' + API_KEY + '&action=delete&fila=' + fila;
+
+    fetch(url)
+      .then(r => r.text())
+      .then(text => {
+        try {
+          const data = JSON.parse(text);
+          if (data.exito) {
+            mostrarToast('🗑️ Ticket borrado', 'exito');
+            todosLosTickets = todosLosTickets.filter(t => t.fila !== fila);
+            guardarCache(todosLosTickets);
+            ticketSeleccionado = null;
+            renderizarDetalleVacio();
+            renderizarLista();
+            actualizarBadges();
+            cerrarModalBorrar();
+            if (window.innerWidth <= 1024) volverALista();
+            setTimeout(() => cargarTickets(), 500);
+          } else {
+            mostrarToast('❌ Error: ' + (data.error || 'Desconocido'), 'error');
+          }
+        } catch (e) {}
+        btn.disabled = false;
+        btn.textContent = '🗑️ Sí, borrar';
+        procesando = false;
+      })
+      .catch(error => {
+        mostrarToast('❌ Error: ' + error.message, 'error');
+        btn.disabled = false;
+        btn.textContent = '🗑️ Sí, borrar';
+        procesando = false;
+      });
+  }
+
+  function abrirModalEvidencia() {
+    archivoEvidencia = null;
+    document.getElementById('input-evidencia').value = '';
+    document.getElementById('preview-img').classList.remove('activo');
+    document.getElementById('preview-img').src = '';
+    document.getElementById('notas-admin').value = '';
+    document.getElementById('modal-evidencia').classList.add('activo');
+  }
+
+  function cerrarModal() {
+    document.getElementById('modal-evidencia').classList.remove('activo');
+    archivoEvidencia = null;
+  }
+
+  function previewImagen(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    archivoEvidencia = file;
+    const preview = document.getElementById('preview-img');
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      preview.src = e.target.result;
+      preview.classList.add('activo');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function confirmarEvidencia() {
+    const notas = document.getElementById('notas-admin').value;
+    const btnSubir = document.getElementById('btn-subir');
+    btnSubir.disabled = true;
+    btnSubir.textContent = '⏳ Procesando...';
+
+    function actualizarACompletado(mensajeExito) {
+      const urlUpdate = API_URL + '?key=' + API_KEY + '&action=update&fila=' + ticketSeleccionado.fila + '&estado=Completado' + (notas ? '&notas=' + encodeURIComponent(notas) : '');
+      fetch(urlUpdate)
+        .then(r => r.text())
+        .then(text => {
+          try {
+            const data = JSON.parse(text);
+            if (data.exito) mostrarToast(mensajeExito, 'exito');
+            else mostrarToast('❌ Error: ' + (data.error || 'Desconocido'), 'error');
+          } catch (e) { mostrarToast(mensajeExito, 'exito'); }
+          btnSubir.disabled = false;
+          btnSubir.textContent = '📤 Completar';
+          cerrarModal();
+          setTimeout(() => cargarTickets(), 500);
+        })
+        .catch(error => {
+          mostrarToast('❌ Error: ' + error.message, 'error');
+          btnSubir.disabled = false;
+          btnSubir.textContent = '📤 Completar';
+        });
+    }
+
+    if (!archivoEvidencia) {
+      actualizarACompletado('✅ Ticket completado');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const base64 = e.target.result.split(',')[1];
+      const tipoMime = archivoEvidencia.type;
+      const nombreArchivo = 'evidencia_' + ticketSeleccionado.fila + '_' + Date.now() + '_' + archivoEvidencia.name;
+      const formData = new FormData();
+      formData.append('key', API_KEY);
+      formData.append('action', 'upload');
+      formData.append('fila', ticketSeleccionado.fila);
+      formData.append('nombre', nombreArchivo);
+      formData.append('base64', base64);
+      formData.append('tipo', tipoMime);
+
+      fetch(API_URL, { method: 'POST', body: formData })
+        .then(r => r.text())
+        .then(text => {
+          let subidaOk = false;
+          try { subidaOk = JSON.parse(text).exito; } catch (err) {}
+          if (subidaOk) actualizarACompletado('✅ Ticket completado con evidencia');
+          else actualizarACompletado('✅ Ticket completado (sin imagen)');
+        })
+        .catch(() => { actualizarACompletado('✅ Ticket completado (sin imagen)'); });
+    };
+    reader.readAsDataURL(archivoEvidencia);
+  }
+
+  function abrirModalNota() {
+    if (!ticketSeleccionado) return;
+    document.getElementById('input-nota').value = ticketSeleccionado.notasAdmin || '';
+    document.getElementById('modal-nota').classList.add('activo');
+  }
+
+  function cerrarModalNota() {
+    document.getElementById('modal-nota').classList.remove('activo');
+  }
+
+  function guardarNota() {
+    const nota = document.getElementById('input-nota').value;
+    const btnGuardar = document.getElementById('btn-guardar-nota');
+    btnGuardar.disabled = true;
+    btnGuardar.textContent = '⏳ Guardando...';
+    const url = API_URL + '?key=' + API_KEY + '&action=note&fila=' + ticketSeleccionado.fila + '&nota=' + encodeURIComponent(nota);
+
+    fetch(url)
+      .then(r => r.text())
+      .then(text => {
+        try {
+          const data = JSON.parse(text);
+          if (data.exito) {
+            mostrarToast('✅ Nota guardada', 'exito');
+            ticketSeleccionado.notasAdmin = nota;
+            cerrarModalNota();
+            setTimeout(() => cargarTickets(), 500);
+          } else {
+            mostrarToast('❌ Error: ' + (data.error || 'Desconocido'), 'error');
+          }
+        } catch (e) {
+          mostrarToast('✅ Nota guardada', 'exito');
+          cerrarModalNota();
+          setTimeout(() => cargarTickets(), 500);
+        }
+        btnGuardar.disabled = false;
+        btnGuardar.textContent = '💾 Guardar nota';
+      })
+      .catch(error => {
+        mostrarToast('❌ Error: ' + error.message, 'error');
+        btnGuardar.disabled = false;
+        btnGuardar.textContent = '💾 Guardar nota';
+      });
+  }
+
+  // ===== WHATSAPP (SIN AUTOCOMPLETAR) =====
+    function abrirModalWsp() {
+      if (!ticketSeleccionado) return;
+      const t = ticketSeleccionado;
+    
+      cargarContactos().then(contactos => {
+        const select = document.getElementById('wsp-contacto');
+        
+        console.log('📋 Contactos cargados:', contactos);
+        
+        if (!contactos || contactos.length === 0) {
+          select.innerHTML = '<option value="">⚠️ No hay contactos en la hoja "Contactos"</option>';
+        } else {
+          // ✅ Solo mostrar la lista, sin preseleccionar
+          select.innerHTML = '<option value="">— Selecciona un contacto —</option>' +
+            contactos.map(c => 
+              '<option value="' + c.telefono + '">' + 
+              c.nombre + (c.rol ? ' · ' + c.rol : '') + 
+              '</option>'
+            ).join('');
+        }
+        
+        document.getElementById('wsp-mensaje').value = generarMensajeWsp(t);
+        document.getElementById('modal-wsp').classList.add('activo');
+      }).catch(err => {
+        console.error('❌ Error cargando contactos:', err);
+        mostrarToast('❌ Error al cargar contactos', 'error');
+      });
+    }
+
+  function generarMensajeWsp(t) {
+    const estado = t.estado;
+    const nota = t.notasAdmin || '';
+    const evidencia = t.evidencia || '';
+    let mensaje = '';
+
+    if (estado === 'Aprobado') {
+      mensaje = 'Hola 👋\n\n📢 *Estado de tu solicitud*\n\nTu solicitud *"' + t.solicitud + '"* fue *APROBADA* ✅\n\n📅 Fecha: ' + (t.fecha ? new Date(t.fecha).toLocaleDateString('es-PE') : 'Sin fecha') + '\n🆔 Ticket #' + (t.fila - 1);
+      if (nota) mensaje += '\n\n📝 *Nota:* ' + nota;
+    } else if (estado === 'Rechazado') {
+      mensaje = 'Hola 👋\n\n📢 *Estado de tu solicitud*\n\nTu solicitud *"' + t.solicitud + '"* fue *RECHAZADA* ❌\n\n📅 Fecha: ' + (t.fecha ? new Date(t.fecha).toLocaleDateString('es-PE') : 'Sin fecha') + '\n🆔 Ticket #' + (t.fila - 1);
+      if (nota) mensaje += '\n\n📝 *Motivo:* ' + nota;
+    } else if (estado === 'Completado') {
+      mensaje = 'Hola 👋\n\n📢 *Estado de tu solicitud*\n\nTu solicitud *"' + t.solicitud + '"* fue *COMPLETADA* ✅\n\n📅 Fecha: ' + (t.fecha ? new Date(t.fecha).toLocaleDateString('es-PE') : 'Sin fecha') + '\n🆔 Ticket #' + (t.fila - 1);
+      if (nota) mensaje += '\n\n📝 *Nota:* ' + nota;
+      if (evidencia) mensaje += '\n\n📎 *Evidencia:* ' + evidencia;
+    } else {
+      mensaje = 'Hola 👋\n\n📢 *Actualización de tu solicitud*\n\nSolicitud: *"' + t.solicitud + '"*\nEstado actual: *' + estado + '*\n🆔 Ticket #' + (t.fila - 1);
+      if (nota) mensaje += '\n\n📝 *Nota:* ' + nota;
+    }
+    return mensaje;
+  }
+
+  function cerrarModalWsp() {
+    document.getElementById('modal-wsp').classList.remove('activo');
+  }
+
+    function enviarWhatsApp() {
+      const selectEl = document.getElementById('wsp-contacto');
+      const telefono = selectEl.value;
+      const mensaje = document.getElementById('wsp-mensaje').value;
+    
+      console.log('📱 Teléfono seleccionado:', telefono);
+    
+      if (!telefono || telefono === '' || telefono === 'undefined') {
+        mostrarToast('⚠️ Selecciona un contacto de la lista', 'error');
+        return;
+      }
+    
+      if (!mensaje.trim()) {
+        mostrarToast('⚠️ El mensaje está vacío', 'error');
+        return;
+      }
+    
+      const mensajeNota = extraerNotaDelMensaje(mensaje);
+      const notaAnterior = ticketSeleccionado.notasAdmin || '';
+      if (mensajeNota && mensajeNota !== notaAnterior) {
+        guardarNotaSilenciosa(mensajeNota);
+      }
+    
+      const url = 'https://wa.me/' + telefono + '?text=' + encodeURIComponent(mensaje);
+      console.log('🔗 URL WhatsApp:', url);
+      window.open(url, '_blank');
+      cerrarModalWsp();
+      mostrarToast('📱 WhatsApp abierto', 'exito');
+    }
+
+  function extraerNotaDelMensaje(mensaje) {
+    const match = mensaje.match(/(?:📝 \*(?:Nota|Motivo):\*)\s*(.+?)(?:\n\n|$)/s);
+    return match ? match[1].trim() : '';
+  }
+
+  function guardarNotaSilenciosa(nota) {
+    if (!ticketSeleccionado) return;
+    const url = API_URL + '?key=' + API_KEY + '&action=note&fila=' + ticketSeleccionado.fila + '&nota=' + encodeURIComponent(nota);
+    fetch(url).catch(() => {});
+    ticketSeleccionado.notasAdmin = nota;
+  }
+
+  // ===== REPORTE A4 =====
+  function abrirModalReporte() {
+    if (!ticketSeleccionado) return;
+    const html = generarReporteHTML(ticketSeleccionado);
+    document.getElementById('reporte-contenedor').innerHTML = html;
+    document.getElementById('modal-reporte').classList.add('activo');
+  }
+
+  function cerrarModalReporte() {
+    document.getElementById('modal-reporte').classList.remove('activo');
+  }
+
+  function generarReporteHTML(t) {
+    const p = obtenerPrioridad(t.urgencia);
+    const estadoClase = obtenerEstadoClase(t.estado);
+    const fecha = t.fecha ? new Date(t.fecha).toLocaleDateString('es-PE') : 'Sin fecha';
+    const fechaGen = new Date().toLocaleDateString('es-PE') + ' · ' + new Date().toLocaleTimeString('es-PE', {hour:'2-digit', minute:'2-digit'});
+    const notasTruncadas = (t.notas || 'Sin notas').substring(0, 1500);
+    const notaAdmin = (t.notasAdmin || 'Sin nota').substring(0, 500);
+
+    let progreso = 25;
+    if (t.estado === 'Aprobado') progreso = 50;
+    else if (t.estado === 'Rechazado' || t.estado === 'Completado' || t.estado === 'Archivado') progreso = 100;
+
+    let duracionTotal = '';
+    if (t.timestamp && t.fechaCambio) {
+      duracionTotal = calcularDuracion(t.timestamp, t.fechaCambio);
+    }
+
+    let timelineItems = '';
+    const esPendiente = t.estado === 'Pendiente';
+
+    timelineItems += 
+      '<div class="rpt-tl-item completado">' +
+        '<div class="rpt-tl-dot ' + (esPendiente ? 'activo' : 'completado') + '">' + (esPendiente ? '●' : '✓') + '</div>' +
+        '<div class="rpt-tl-content">' +
+          '<div class="rpt-tl-titulo ' + (esPendiente ? 'activo' : '') + '">Ticket creado</div>' +
+          '<div class="rpt-tl-fecha">📅 ' + formatearFecha(t.timestamp) + '</div>' +
+        '</div>' +
+      '</div>';
+
+    if (t.estado === 'Pendiente') {
+      timelineItems += 
+        '<div class="rpt-tl-item">' +
+          '<div class="rpt-tl-dot pendiente"></div>' +
+          '<div class="rpt-tl-content">' +
+            '<div class="rpt-tl-titulo pendiente">Aprobación</div>' +
+            '<div class="rpt-tl-fecha">⏳ Esperando revisión</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="rpt-tl-item">' +
+          '<div class="rpt-tl-dot pendiente"></div>' +
+          '<div class="rpt-tl-content">' +
+            '<div class="rpt-tl-titulo pendiente">Completado</div>' +
+            '<div class="rpt-tl-fecha">⏳ Pendiente</div>' +
+          '</div>' +
+        '</div>';
+    } else if (t.estado === 'Rechazado') {
+      timelineItems += 
+        '<div class="rpt-tl-item completado activo">' +
+          '<div class="rpt-tl-dot rechazado">✕</div>' +
+          '<div class="rpt-tl-content">' +
+            '<div class="rpt-tl-titulo rechazado">Rechazado</div>' +
+            '<div class="rpt-tl-fecha">📅 ' + formatearFecha(t.fechaCambio) + '</div>' +
+            '<div class="rpt-tl-detalle rechazado">' +
+              '<div class="rpt-tl-detalle-line"><span>👤</span><span>Cristhian · Coordinador</span></div>' +
+              (t.notasAdmin ? '<div class="rpt-tl-detalle-line"><span>📝</span><span><strong>Motivo:</strong> ' + t.notasAdmin + '</span></div>' : '') +
+            '</div>' +
+          '</div>' +
+        '</div>';
+    } else if (t.estado === 'Aprobado') {
+      timelineItems += 
+        '<div class="rpt-tl-item completado activo">' +
+          '<div class="rpt-tl-dot activo">●</div>' +
+          '<div class="rpt-tl-content">' +
+            '<div class="rpt-tl-titulo activo">Aprobado</div>' +
+            '<div class="rpt-tl-fecha">📅 ' + formatearFecha(t.fechaCambio) + '</div>' +
+            '<div class="rpt-tl-detalle aprobado">' +
+              '<div class="rpt-tl-detalle-line"><span>👤</span><span>Cristhian · Coordinador</span></div>' +
+              (t.notasAdmin ? '<div class="rpt-tl-detalle-line"><span>💬</span><span>' + t.notasAdmin + '</span></div>' : '') +
+            '</div>' +
+            (duracionTotal ? '<div class="rpt-tl-duracion">⏱️ ' + duracionTotal + ' desde creación</div>' : '') +
+          '</div>' +
+        '</div>' +
+        '<div class="rpt-tl-item">' +
+          '<div class="rpt-tl-dot pendiente"></div>' +
+          '<div class="rpt-tl-content">' +
+            '<div class="rpt-tl-titulo pendiente">Completado</div>' +
+            '<div class="rpt-tl-fecha">⏳ Pendiente</div>' +
+          '</div>' +
+        '</div>';
+    } else if (t.estado === 'Completado' || t.estado === 'Archivado') {
+      timelineItems += 
+        '<div class="rpt-tl-item completado">' +
+          '<div class="rpt-tl-dot completado">✓</div>' +
+          '<div class="rpt-tl-content">' +
+            '<div class="rpt-tl-titulo">Aprobado</div>' +
+            '<div class="rpt-tl-fecha">📅 ' + formatearFecha(t.timestamp) + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="rpt-tl-item completado ' + (t.estado === 'Completado' ? 'activo' : '') + '">' +
+          '<div class="rpt-tl-dot ' + (t.estado === 'Completado' ? 'activo' : 'completado') + '">' + (t.estado === 'Completado' ? '●' : '✓') + '</div>' +
+          '<div class="rpt-tl-content">' +
+            '<div class="rpt-tl-titulo ' + (t.estado === 'Completado' ? 'activo' : '') + '">Completado' + (t.evidencia ? ' con evidencia' : '') + '</div>' +
+            '<div class="rpt-tl-fecha">📅 ' + formatearFecha(t.fechaCambio) + '</div>' +
+            '<div class="rpt-tl-detalle completado">' +
+              '<div class="rpt-tl-detalle-line"><span>👤</span><span>Cristhian · Coordinador</span></div>' +
+              (t.evidencia ? '<div class="rpt-tl-detalle-line"><span>📎</span><span>' + t.evidencia + '</span></div>' : '') +
+              (t.notasAdmin ? '<div class="rpt-tl-detalle-line"><span>📝</span><span><strong>Nota:</strong> ' + t.notasAdmin + '</span></div>' : '') +
+            '</div>' +
+            (duracionTotal ? '<div class="rpt-tl-duracion">⏱️ Total: ' + duracionTotal + '</div>' : '') +
+          '</div>' +
+        '</div>';
+
+      if (t.estado === 'Archivado') {
+        timelineItems += 
+          '<div class="rpt-tl-item completado activo">' +
+            '<div class="rpt-tl-dot archivado">📦</div>' +
+            '<div class="rpt-tl-content">' +
+              '<div class="rpt-tl-titulo">Archivado</div>' +
+              '<div class="rpt-tl-fecha">📅 ' + formatearFecha(t.fechaCambio) + '</div>' +
+            '</div>' +
+          '</div>';
+      }
+    }
+
+    const css = `
+      <style>
+        .rpt-hoja { width: 210mm; min-height: 297mm; background: white; padding: 10mm; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1a2332; box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+        .rpt-header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 3mm; border-bottom: 2.5px solid #1a2332; margin-bottom: 3.5mm; }
+        .rpt-header-izq { flex: 1; padding-right: 8mm; }
+        .rpt-titulo-principal { font-size: 8.5px; font-weight: 800; color: #95a5a6; text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 1.5mm; }
+        .rpt-titulo { font-size: 16px; font-weight: 800; line-height: 1.2; letter-spacing: -0.4px; }
+        .rpt-header-der { text-align: right; font-size: 8.5px; color: #7f8c8d; line-height: 1.4; min-width: 38mm; }
+        .rpt-logo { font-size: 11px; font-weight: 800; color: #1a2332; margin-bottom: 0.8mm; }
+        .rpt-fecha-gen { font-size: 8px; color: #95a5a6; margin-top: 1.5mm; padding-top: 1.5mm; border-top: 1px solid #e8ecf1; }
+        .rpt-badges { display: flex; gap: 5px; margin-bottom: 3.5mm; }
+        .rpt-badge { padding: 2.5px 10px; border-radius: 9px; font-size: 8.5px; font-weight: 800; text-transform: uppercase; }
+        .badge-alta { background: #fde8e6; color: #c0392b; }
+        .badge-media { background: #fef9e7; color: #b7950b; }
+        .badge-baja { background: #e8f8f0; color: #1e8449; }
+        .badge-estado { background: #d1fae5; color: #065f46; }
+        .badge-estado-rechazado { background: #fee2e2; color: #991b1b; }
+        .badge-estado-pendiente { background: #fef3c7; color: #92400e; }
+        .badge-ticket { background: #f0f3f7; color: #7f8c8d; }
+        .rpt-body { display: grid; grid-template-columns: 42% 58%; gap: 4mm; margin-bottom: 4mm; }
+        .rpt-col-izq { display: flex; flex-direction: column; gap: 3.5mm; }
+        .rpt-seccion { background: #f8fafc; border-radius: 6px; padding: 3.5mm; border: 1px solid #e8ecf1; }
+        .rpt-seccion-titulo { font-size: 8px; font-weight: 800; color: #95a5a6; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 2.5mm; padding-bottom: 1.5mm; border-bottom: 1px solid #e8ecf1; }
+        .rpt-info-row { display: flex; justify-content: space-between; font-size: 10px; padding: 1.5mm 0; border-bottom: 1px dashed #f0f3f7; }
+        .rpt-info-row:last-child { border-bottom: none; }
+        .rpt-info-label { color: #95a5a6; font-weight: 600; }
+        .rpt-info-valor { color: #1a2332; font-weight: 700; text-align: right; }
+        .rpt-estado-badge { display: inline-flex; padding: 2mm 4mm; border-radius: 7px; font-size: 10px; font-weight: 800; text-transform: uppercase; margin-bottom: 2.5mm; }
+        .rpt-estado-badge.pendiente { background: #fef3c7; color: #92400e; }
+        .rpt-estado-badge.aprobado { background: #d1fae5; color: #065f46; }
+        .rpt-estado-badge.rechazado { background: #fee2e2; color: #991b1b; }
+        .rpt-estado-badge.completado { background: #dbeafe; color: #1e40af; }
+        .rpt-estado-badge.archivado { background: #e5e7eb; color: #4b5563; }
+        .rpt-progreso { display: flex; align-items: center; gap: 3mm; margin-bottom: 3mm; padding: 2mm 3mm; background: #f8fafc; border-radius: 5px; border: 1px solid #eef2f7; }
+        .rpt-progreso-label { font-size: 10px; font-weight: 800; color: #5a6c7d; min-width: 11mm; }
+        .rpt-progreso-bar { flex: 1; height: 5px; background: #e8ecf1; border-radius: 3px; overflow: hidden; }
+        .rpt-progreso-fill { height: 100%; background: linear-gradient(90deg, #27ae60, #2ecc71); }
+        .rpt-timeline { display: flex; flex-direction: column; width: 100%; }
+        .rpt-tl-item { display: flex; gap: 3mm; align-items: flex-start; padding: 2mm 0; position: relative; width: 100%; }
+        .rpt-tl-item:not(:last-child)::before { content: ''; position: absolute; left: 3.5mm; top: 9mm; bottom: -2mm; width: 0.6mm; background: #e8ecf1; }
+        .rpt-tl-item.completado:not(:last-child)::before { background: #27ae60; }
+        .rpt-tl-dot { width: 7.5mm; height: 7.5mm; border-radius: 50%; flex-shrink: 0; margin-top: 0.5mm; z-index: 1; border: 0.8mm solid white; box-shadow: 0 0 0 0.5mm #e8ecf1; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: 800; box-sizing: border-box; }
+        .rpt-tl-dot.completado { background: #27ae60; box-shadow: 0 0 0 0.5mm #27ae60; }
+        .rpt-tl-dot.activo { background: #3498db; box-shadow: 0 0 0 0.5mm #3498db, 0 0 0 1.5mm rgba(52,152,219,0.2); }
+        .rpt-tl-dot.pendiente { background: #f0f3f7; box-shadow: 0 0 0 0.5mm #e0e6ed; }
+        .rpt-tl-dot.pendiente::before { content: ''; width: 2.5mm; height: 2.5mm; border-radius: 50%; background: #cbd5e0; }
+        .rpt-tl-dot.rechazado { background: #e74c3c; box-shadow: 0 0 0 0.5mm #e74c3c; }
+        .rpt-tl-dot.archivado { background: #95a5a6; box-shadow: 0 0 0 0.5mm #95a5a6; }
+        .rpt-tl-content { flex: 1; min-width: 0; }
+        .rpt-tl-titulo { font-size: 10.5px; font-weight: 800; color: #1a2332; margin-bottom: 0.5mm; }
+        .rpt-tl-titulo.pendiente { color: #95a5a6; }
+        .rpt-tl-titulo.activo { color: #3498db; }
+        .rpt-tl-titulo.rechazado { color: #e74c3c; }
+        .rpt-tl-fecha { font-size: 8.5px; color: #95a5a6; font-weight: 600; }
+        .rpt-tl-detalle { margin-top: 1.5mm; padding: 2mm 2.5mm; border-radius: 5px; border-left: 1mm solid #e0e6ed; background: #f8fafc; font-size: 9px; color: #5a6c7d; line-height: 1.5; width: 100%; }
+        .rpt-tl-detalle.aprobado { border-left-color: #27ae60; background: #f0fdf4; color: #065f46; }
+        .rpt-tl-detalle.completado { border-left-color: #3498db; background: #eff6ff; color: #1e40af; }
+        .rpt-tl-detalle.rechazado { border-left-color: #e74c3c; background: #fef2f2; color: #991b1b; }
+        .rpt-tl-detalle-line { display: flex; align-items: flex-start; gap: 1.5mm; margin-bottom: 0.8mm; }
+        .rpt-tl-detalle-line:last-child { margin-bottom: 0; }
+        .rpt-tl-duracion { display: inline-flex; align-items: center; gap: 1.5mm; font-size: 8.5px; color: #5a6c7d; font-weight: 800; background: #f0f3f7; padding: 1mm 2.5mm; border-radius: 4px; margin-top: 1.5mm; border: 1px solid #e8ecf1; }
+        .rpt-notas { font-size: 12px; color: #2c3e50; line-height: 1.65; word-break: break-word; }
+        .rpt-nota-admin { background: #fffbeb; padding: 3.5mm; border-radius: 6px; border-left: 4px solid #f1c40f; font-size: 11px; color: #78350f; line-height: 1.55; margin-bottom: 4mm; }
+        .rpt-evidencia { display: flex; align-items: center; gap: 6px; padding: 3mm; background: #eff6ff; border-radius: 6px; border-left: 4px solid #3498db; font-size: 11px; color: #1e40af; font-weight: 600; word-break: break-all; margin-bottom: 4mm; }
+        .rpt-footer { text-align: center; font-size: 8px; color: #95a5a6; padding-top: 2.5mm; border-top: 1px solid #e8ecf1; margin-top: 4mm; }
+        @media print {
+          body * { visibility: hidden; }
+          .rpt-hoja, .rpt-hoja * { visibility: visible; }
+          .rpt-hoja { position: absolute; left: 0; top: 0; width: 210mm; box-shadow: none; padding: 10mm; }
+          @page { size: A4 portrait; margin: 0; }
+        }
+      </style>
+    `;
+
+    let urgenciaClass = 'badge-baja';
+    if (p === 'alta') urgenciaClass = 'badge-alta';
+    else if (p === 'media') urgenciaClass = 'badge-media';
+
+    let estadoBadgeClass = 'badge-estado';
+    if (t.estado === 'Rechazado') estadoBadgeClass = 'badge-estado-rechazado';
+    else if (t.estado === 'Pendiente') estadoBadgeClass = 'badge-estado-pendiente';
+
+    return css + 
+      '<div class="rpt-hoja">' +
+        '<div class="rpt-header">' +
+          '<div class="rpt-header-izq">' +
+            '<div class="rpt-titulo-principal">Reporte de Ticket</div>' +
+            '<div class="rpt-titulo">' + t.solicitud + '</div>' +
+          '</div>' +
+          '<div class="rpt-header-der">' +
+            '<div class="rpt-logo">🎟️ Tickets</div>' +
+            '<div>Sistema de solicitudes</div>' +
+            '<div class="rpt-fecha-gen">Generado: <strong>' + fechaGen + '</strong></div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="rpt-badges">' +
+          '<span class="rpt-badge ' + urgenciaClass + '">🔴 URGENCIA ' + (t.urgencia || 'BAJA').toUpperCase() + '</span>' +
+          '<span class="rpt-badge ' + estadoBadgeClass + '">' + obtenerEmojiEstado(t.estado) + ' ' + t.estado.toUpperCase() + '</span>' +
+          '<span class="rpt-badge badge-ticket">🆔 TICKET #' + (t.fila - 1) + '</span>' +
+        '</div>' +
+        '<div class="rpt-body">' +
+          '<div class="rpt-col-izq">' +
+            '<div class="rpt-seccion">' +
+              '<div class="rpt-seccion-titulo">👤 Información del solicitante</div>' +
+              '<div class="rpt-info-row"><span class="rpt-info-label">Nombre</span><span class="rpt-info-valor">' + t.nombre + '</span></div>' +
+              '<div class="rpt-info-row"><span class="rpt-info-label">Fecha</span><span class="rpt-info-valor">' + fecha + '</span></div>' +
+              '<div class="rpt-info-row"><span class="rpt-info-label">Ticket</span><span class="rpt-info-valor">#' + (t.fila - 1) + '</span></div>' +
+              '<div class="rpt-info-row"><span class="rpt-info-label">Estado</span><span class="rpt-info-valor">' + t.estado + '</span></div>' +
+            '</div>' +
+            '<div class="rpt-seccion">' +
+              '<div class="rpt-seccion-titulo">📊 Estado y flujo</div>' +
+              '<div class="rpt-estado-badge ' + estadoClase + '">' + obtenerEmojiEstado(t.estado) + ' ' + t.estado.toUpperCase() + '</div>' +
+              '<div class="rpt-progreso">' +
+                '<span class="rpt-progreso-label">' + progreso + '%</span>' +
+                '<div class="rpt-progreso-bar"><div class="rpt-progreso-fill" style="width:' + progreso + '%"></div></div>' +
+              '</div>' +
+              '<div class="rpt-timeline">' + timelineItems + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="rpt-seccion" style="height: 100%;">' +
+            '<div class="rpt-seccion-titulo">📝 Notas del solicitante</div>' +
+            '<div class="rpt-notas">' + notasTruncadas + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="rpt-seccion">' +
+          '<div class="rpt-seccion-titulo">💼 Nota del administrador</div>' +
+          '<div class="rpt-nota-admin">' + notaAdmin + '</div>' +
+        '</div>' +
+        (t.evidencia ? 
+          '<div class="rpt-seccion" style="margin-top: 4mm;">' +
+            '<div class="rpt-seccion-titulo">📎 Evidencia adjunta</div>' +
+            '<div class="rpt-evidencia">🔗 ' + t.evidencia + '</div>' +
+          '</div>' 
+        : '') +
+        '<div class="rpt-footer">' +
+          '<strong>🎟️ Tickets</strong> · Reporte generado automáticamente el ' + fechaGen +
+        '</div>' +
+      '</div>';
+  }
+
+  function imprimirReporte() {
+    window.print();
+  }
+
+  cargarTickets();
+  cargarContactos();
+
+  setInterval(() => {
+    if (!procesando && !cargando && document.visibilityState === 'visible') cargarTickets();
+  }, 180000);
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && !procesando && !cargando) cargarTickets();
+  });
+</script>
+</body>
+</html>
