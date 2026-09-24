@@ -369,40 +369,43 @@
       display: flex;
       gap: 12px;
       align-items: flex-start;
-      padding: 8px 0;
+      padding: 8px 0 8px 6px;
       position: relative;
       width: 100%;
+      box-sizing: border-box;
     }
     .th-item:not(:last-child)::before {
       content: '';
       position: absolute;
-      left: 9px;
-      top: 28px;
+      left: 17px;
+      top: 32px;
       bottom: -8px;
       width: 2px;
       background: #e8ecf1;
+      z-index: 0;
     }
     .th-item.completado:not(:last-child)::before { background: #27ae60; }
     .th-item.activo:not(:last-child)::before { background: #27ae60; }
 
     .th-dot {
-      width: 20px;
-      height: 20px;
+      width: 22px;
+      height: 22px;
       border-radius: 50%;
       flex-shrink: 0;
       margin-top: 2px;
-      z-index: 1;
-      border: 2px solid white;
+      z-index: 2;
+      border: 2.5px solid white;
       box-shadow: 0 0 0 2px #e8ecf1;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 10px;
+      font-size: 11px;
       color: white;
       font-weight: 800;
-      box-sizing: border-box;
+      box-sizing: content-box;
       padding: 0;
       line-height: 1;
+      overflow: visible;
     }
     .th-dot.completado { background: #27ae60; box-shadow: 0 0 0 2px #27ae60; }
     .th-dot.activo {
@@ -1779,24 +1782,34 @@
   }
 
   // ===== WHATSAPP (SIN AUTOCOMPLETAR) =====
-  function abrirModalWsp() {
-    if (!ticketSeleccionado) return;
-    const t = ticketSeleccionado;
-
-    cargarContactos().then(contactos => {
-      const select = document.getElementById('wsp-contacto');
-      if (!contactos || contactos.length === 0) {
-        select.innerHTML = '<option value="">⚠️ No hay contactos en la hoja "Contactos"</option>';
-      } else {
-        select.innerHTML = '<option value="">— Selecciona un contacto —</option>' +
-          contactos.map(c => 
-            '<option value="' + c.telefono + '">' + c.nombre + (c.rol ? ' · ' + c.rol : '') + '</option>'
-          ).join('');
-      }
-      document.getElementById('wsp-mensaje').value = generarMensajeWsp(t);
-      document.getElementById('modal-wsp').classList.add('activo');
-    });
-  }
+    function abrirModalWsp() {
+      if (!ticketSeleccionado) return;
+      const t = ticketSeleccionado;
+    
+      cargarContactos().then(contactos => {
+        const select = document.getElementById('wsp-contacto');
+        
+        console.log('📋 Contactos cargados:', contactos);
+        
+        if (!contactos || contactos.length === 0) {
+          select.innerHTML = '<option value="">⚠️ No hay contactos en la hoja "Contactos"</option>';
+        } else {
+          // ✅ Solo mostrar la lista, sin preseleccionar
+          select.innerHTML = '<option value="">— Selecciona un contacto —</option>' +
+            contactos.map(c => 
+              '<option value="' + c.telefono + '">' + 
+              c.nombre + (c.rol ? ' · ' + c.rol : '') + 
+              '</option>'
+            ).join('');
+        }
+        
+        document.getElementById('wsp-mensaje').value = generarMensajeWsp(t);
+        document.getElementById('modal-wsp').classList.add('activo');
+      }).catch(err => {
+        console.error('❌ Error cargando contactos:', err);
+        mostrarToast('❌ Error al cargar contactos', 'error');
+      });
+    }
 
   function generarMensajeWsp(t) {
     const estado = t.estado;
@@ -1825,32 +1838,35 @@
     document.getElementById('modal-wsp').classList.remove('activo');
   }
 
-  function enviarWhatsApp() {
-    const selectEl = document.getElementById('wsp-contacto');
-    const telefono = selectEl.value;
-    const mensaje = document.getElementById('wsp-mensaje').value;
-
-    if (!telefono || telefono === '' || telefono === 'undefined') {
-      mostrarToast('⚠️ Selecciona un destinatario válido', 'error');
-      return;
+    function enviarWhatsApp() {
+      const selectEl = document.getElementById('wsp-contacto');
+      const telefono = selectEl.value;
+      const mensaje = document.getElementById('wsp-mensaje').value;
+    
+      console.log('📱 Teléfono seleccionado:', telefono);
+    
+      if (!telefono || telefono === '' || telefono === 'undefined') {
+        mostrarToast('⚠️ Selecciona un contacto de la lista', 'error');
+        return;
+      }
+    
+      if (!mensaje.trim()) {
+        mostrarToast('⚠️ El mensaje está vacío', 'error');
+        return;
+      }
+    
+      const mensajeNota = extraerNotaDelMensaje(mensaje);
+      const notaAnterior = ticketSeleccionado.notasAdmin || '';
+      if (mensajeNota && mensajeNota !== notaAnterior) {
+        guardarNotaSilenciosa(mensajeNota);
+      }
+    
+      const url = 'https://wa.me/' + telefono + '?text=' + encodeURIComponent(mensaje);
+      console.log('🔗 URL WhatsApp:', url);
+      window.open(url, '_blank');
+      cerrarModalWsp();
+      mostrarToast('📱 WhatsApp abierto', 'exito');
     }
-
-    if (!mensaje.trim()) {
-      mostrarToast('⚠️ El mensaje está vacío', 'error');
-      return;
-    }
-
-    const mensajeNota = extraerNotaDelMensaje(mensaje);
-    const notaAnterior = ticketSeleccionado.notasAdmin || '';
-    if (mensajeNota && mensajeNota !== notaAnterior) {
-      guardarNotaSilenciosa(mensajeNota);
-    }
-
-    const url = 'https://wa.me/' + telefono + '?text=' + encodeURIComponent(mensaje);
-    window.open(url, '_blank');
-    cerrarModalWsp();
-    mostrarToast('📱 WhatsApp abierto', 'exito');
-  }
 
   function extraerNotaDelMensaje(mensaje) {
     const match = mensaje.match(/(?:📝 \*(?:Nota|Motivo):\*)\s*(.+?)(?:\n\n|$)/s);
