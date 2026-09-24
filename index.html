@@ -1788,51 +1788,148 @@
     
       cargarContactos().then(contactos => {
         const select = document.getElementById('wsp-contacto');
-        
-        console.log('📋 Contactos cargados:', contactos);
-        
         if (!contactos || contactos.length === 0) {
           select.innerHTML = '<option value="">⚠️ No hay contactos en la hoja "Contactos"</option>';
         } else {
-          // ✅ Solo mostrar la lista, sin preseleccionar
           select.innerHTML = '<option value="">— Selecciona un contacto —</option>' +
             contactos.map(c => 
-              '<option value="' + c.telefono + '">' + 
-              c.nombre + (c.rol ? ' · ' + c.rol : '') + 
-              '</option>'
+              '<option value="' + c.telefono + '">' + c.nombre + (c.rol ? ' · ' + c.rol : '') + '</option>'
             ).join('');
         }
         
+        // Generar mensaje
         document.getElementById('wsp-mensaje').value = generarMensajeWsp(t);
+        
+        // ✅ Validar bloqueo si es RECHAZADO sin motivo
+        const btnEnviar = document.getElementById('btn-enviar-wsp');
+        const alertaInfo = document.querySelector('#modal-wsp .alerta-info');
+        const notaActual = (t.notasAdmin || '').trim();
+        
+        if (t.estado === 'Rechazado' && !notaActual) {
+          // Bloquear el botón
+          btnEnviar.disabled = true;
+          btnEnviar.style.opacity = '0.5';
+          btnEnviar.style.cursor = 'not-allowed';
+          btnEnviar.textContent = '🚫 Falta motivo';
+          
+          // Cambiar el aviso superior
+          if (alertaInfo) {
+            alertaInfo.innerHTML = '⚠️ <strong>Falta el motivo del rechazo.</strong><br>' +
+                                   'Cierra este modal, ve a <strong>📝 Nota admin</strong>, escribe el motivo y guarda.<br>' +
+                                   'Luego vuelve aquí para notificar.';
+            alertaInfo.style.background = '#fef2f2';
+            alertaInfo.style.borderLeftColor = '#e74c3c';
+            alertaInfo.style.color = '#991b1b';
+          }
+        } else {
+          // Restaurar botón
+          btnEnviar.disabled = false;
+          btnEnviar.style.opacity = '1';
+          btnEnviar.style.cursor = 'pointer';
+          btnEnviar.textContent = '📱 Abrir WhatsApp';
+          
+          // Restaurar aviso normal
+          if (alertaInfo) {
+            alertaInfo.innerHTML = 'Al tocar <strong>Abrir WhatsApp</strong>, se abrirá con el mensaje pre-armado. Solo presiona <strong>Enviar</strong>.';
+            alertaInfo.style.background = '#f0fdf4';
+            alertaInfo.style.borderLeftColor = '#25D366';
+            alertaInfo.style.color = '#128C7E';
+          }
+        }
+        
         document.getElementById('modal-wsp').classList.add('activo');
-      }).catch(err => {
-        console.error('❌ Error cargando contactos:', err);
-        mostrarToast('❌ Error al cargar contactos', 'error');
       });
     }
 
-  function generarMensajeWsp(t) {
-    const estado = t.estado;
-    const nota = t.notasAdmin || '';
-    const evidencia = t.evidencia || '';
-    let mensaje = '';
-
-    if (estado === 'Aprobado') {
-      mensaje = 'Hola 👋\n\n📢 *Estado de tu solicitud*\n\nTu solicitud *"' + t.solicitud + '"* fue *APROBADA* ✅\n\n📅 Fecha: ' + (t.fecha ? new Date(t.fecha).toLocaleDateString('es-PE') : 'Sin fecha') + '\n🆔 Ticket #' + (t.fila - 1);
-      if (nota) mensaje += '\n\n📝 *Nota:* ' + nota;
-    } else if (estado === 'Rechazado') {
-      mensaje = 'Hola 👋\n\n📢 *Estado de tu solicitud*\n\nTu solicitud *"' + t.solicitud + '"* fue *RECHAZADA* ❌\n\n📅 Fecha: ' + (t.fecha ? new Date(t.fecha).toLocaleDateString('es-PE') : 'Sin fecha') + '\n🆔 Ticket #' + (t.fila - 1);
-      if (nota) mensaje += '\n\n📝 *Motivo:* ' + nota;
-    } else if (estado === 'Completado') {
-      mensaje = 'Hola 👋\n\n📢 *Estado de tu solicitud*\n\nTu solicitud *"' + t.solicitud + '"* fue *COMPLETADA* ✅\n\n📅 Fecha: ' + (t.fecha ? new Date(t.fecha).toLocaleDateString('es-PE') : 'Sin fecha') + '\n🆔 Ticket #' + (t.fila - 1);
-      if (nota) mensaje += '\n\n📝 *Nota:* ' + nota;
-      if (evidencia) mensaje += '\n\n📎 *Evidencia:* ' + evidencia;
-    } else {
-      mensaje = 'Hola 👋\n\n📢 *Actualización de tu solicitud*\n\nSolicitud: *"' + t.solicitud + '"*\nEstado actual: *' + estado + '*\n🆔 Ticket #' + (t.fila - 1);
-      if (nota) mensaje += '\n\n📝 *Nota:* ' + nota;
+    function generarMensajeWsp(t) {
+      const estado = t.estado;
+      const nota = (t.notasAdmin || '').trim();
+      const evidencia = (t.evidencia || '').trim();
+      const fecha = t.fecha ? new Date(t.fecha).toLocaleDateString('es-PE') : 'Sin fecha';
+      const numTicket = t.fila - 1;
+      let mensaje = '';
+    
+      // ===== PENDIENTE =====
+      if (estado === 'Pendiente') {
+        mensaje = 
+          'ESTADO DE TU SOLICITUD\n' +
+          '─────────────────────\n\n' +
+          'Hola, te informamos sobre tu solicitud:\n\n' +
+          '"' + t.solicitud + '"\n\n' +
+          'El estado actual es: PENDIENTE\n\n' +
+          'Fecha de solicitud: ' + fecha + '\n' +
+          'Numero de ticket: #' + numTicket;
+      }
+    
+      // ===== APROBADO =====
+      else if (estado === 'Aprobado') {
+        mensaje = 
+          'ESTADO DE TU SOLICITUD\n' +
+          '─────────────────────\n\n' +
+          'Hola, te informamos sobre tu solicitud:\n\n' +
+          '"' + t.solicitud + '"\n\n' +
+          'El estado actual es: APROBADA\n\n' +
+          'Fecha de solicitud: ' + fecha + '\n' +
+          'Numero de ticket: #' + numTicket;
+        if (nota) {
+          mensaje += '\n\nNota del coordinador:\n' + nota;
+        }
+      }
+    
+      // ===== RECHAZADO =====
+      else if (estado === 'Rechazado') {
+        mensaje = 
+          'ESTADO DE TU SOLICITUD\n' +
+          '─────────────────────\n\n' +
+          'Hola, te informamos sobre tu solicitud:\n\n' +
+          '"' + t.solicitud + '"\n\n' +
+          'El estado actual es: RECHAZADA\n\n' +
+          'Fecha de solicitud: ' + fecha + '\n' +
+          'Numero de ticket: #' + numTicket;
+        if (nota) {
+          mensaje += '\n\nMotivo del rechazo:\n' + nota;
+        }
+      }
+    
+      // ===== COMPLETADO =====
+      else if (estado === 'Completado') {
+        mensaje = 
+          'ESTADO DE TU SOLICITUD\n' +
+          '─────────────────────\n\n' +
+          'Hola, te informamos sobre tu solicitud:\n\n' +
+          '"' + t.solicitud + '"\n\n' +
+          'El estado actual es: COMPLETADA\n\n' +
+          'Fecha de solicitud: ' + fecha + '\n' +
+          'Numero de ticket: #' + numTicket;
+        if (nota) {
+          mensaje += '\n\nNota del coordinador:\n' + nota;
+        }
+        if (evidencia) {
+          mensaje += '\n\nEvidencia adjunta:\n' + evidencia;
+        }
+      }
+    
+      // ===== ARCHIVADO / OTROS =====
+      else {
+        mensaje = 
+          'ESTADO DE TU SOLICITUD\n' +
+          '─────────────────────\n\n' +
+          'Hola, te informamos sobre tu solicitud:\n\n' +
+          '"' + t.solicitud + '"\n\n' +
+          'El estado actual es: ' + estado.toUpperCase() + '\n\n' +
+          'Fecha de solicitud: ' + fecha + '\n' +
+          'Numero de ticket: #' + numTicket;
+        if (nota) {
+          mensaje += '\n\nNota del coordinador:\n' + nota;
+        }
+      }
+    
+      // Firma
+      mensaje += '\n\n─────────────────────\n' +
+                 'Sistema de Tickets';
+    
+      return mensaje;
     }
-    return mensaje;
-  }
 
   function cerrarModalWsp() {
     document.getElementById('modal-wsp').classList.remove('activo');
@@ -1843,26 +1940,28 @@
       const telefono = selectEl.value;
       const mensaje = document.getElementById('wsp-mensaje').value;
     
-      console.log('📱 Teléfono seleccionado:', telefono);
-    
+      // Validar destinatario
       if (!telefono || telefono === '' || telefono === 'undefined') {
         mostrarToast('⚠️ Selecciona un contacto de la lista', 'error');
         return;
       }
     
+      // Validar mensaje
       if (!mensaje.trim()) {
         mostrarToast('⚠️ El mensaje está vacío', 'error');
         return;
       }
     
-      const mensajeNota = extraerNotaDelMensaje(mensaje);
-      const notaAnterior = ticketSeleccionado.notasAdmin || '';
-      if (mensajeNota && mensajeNota !== notaAnterior) {
-        guardarNotaSilenciosa(mensajeNota);
+      // ✅ Validación extra: si es Rechazado sin motivo, bloquear
+      if (ticketSeleccionado && ticketSeleccionado.estado === 'Rechazado') {
+        const notaActual = (ticketSeleccionado.notasAdmin || '').trim();
+        if (!notaActual) {
+          mostrarToast('⚠️ Falta el motivo del rechazo. Ve a 📝 Nota admin primero.', 'error');
+          return;
+        }
       }
     
       const url = 'https://wa.me/' + telefono + '?text=' + encodeURIComponent(mensaje);
-      console.log('🔗 URL WhatsApp:', url);
       window.open(url, '_blank');
       cerrarModalWsp();
       mostrarToast('📱 WhatsApp abierto', 'exito');
