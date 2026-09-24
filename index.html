@@ -376,8 +376,8 @@
     .th-item:not(:last-child)::before {
       content: '';
       position: absolute;
-      left: 10px;
-      top: 32px;
+      left: 9px;
+      top: 28px;
       bottom: -8px;
       width: 2px;
       background: #e8ecf1;
@@ -386,8 +386,8 @@
     .th-item.activo:not(:last-child)::before { background: #27ae60; }
 
     .th-dot {
-      width: 22px;
-      height: 22px;
+      width: 20px;
+      height: 20px;
       border-radius: 50%;
       flex-shrink: 0;
       margin-top: 2px;
@@ -397,32 +397,23 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 11px;
+      font-size: 10px;
       color: white;
       font-weight: 800;
       box-sizing: border-box;
-    }
-    .th-dot.activo {
-      background: #3498db;
-      box-shadow: 0 0 0 2px #3498db, 0 0 0 4px rgba(52,152,219,0.15);
-    }
-    .th-dot.pendiente::before {
-      content: '';
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: #cbd5e0;
+      padding: 0;
+      line-height: 1;
     }
     .th-dot.completado { background: #27ae60; box-shadow: 0 0 0 2px #27ae60; }
     .th-dot.activo {
       background: #3498db;
-      box-shadow: 0 0 0 2px #3498db, 0 0 0 6px rgba(52,152,219,0.2);
+      box-shadow: 0 0 0 2px #3498db, 0 0 0 4px rgba(52,152,219,0.15);
     }
     .th-dot.pendiente { background: #f0f3f7; box-shadow: 0 0 0 2px #e0e6ed; }
     .th-dot.pendiente::before {
       content: '';
-      width: 8px;
-      height: 8px;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
       background: #cbd5e0;
     }
@@ -1315,7 +1306,6 @@
     if (t.estado === 'Aprobado') progreso = 50;
     else if (t.estado === 'Rechazado' || t.estado === 'Completado' || t.estado === 'Archivado') progreso = 100;
 
-    // Duración total
     let duracionTotal = '';
     if (t.timestamp && t.fechaCambio) {
       duracionTotal = calcularDuracion(t.timestamp, t.fechaCambio);
@@ -1330,8 +1320,9 @@
       '</div>' +
       '<div class="timeline-historial">';
 
-    // ===== PASO 1: TICKET CREADO (siempre presente) =====
     const esPendiente = t.estado === 'Pendiente';
+
+    // PASO 1: TICKET CREADO
     html += 
       '<div class="th-item completado">' +
         '<div class="th-dot ' + (esPendiente ? 'activo' : 'completado') + '">' + (esPendiente ? '●' : '✓') + '</div>' +
@@ -1341,7 +1332,7 @@
         '</div>' +
       '</div>';
 
-    // ===== ESTADO: PENDIENTE =====
+    // PENDIENTE
     if (t.estado === 'Pendiente') {
       html += 
         '<div class="th-item">' +
@@ -1360,7 +1351,7 @@
         '</div>';
     }
 
-    // ===== ESTADO: RECHAZADO =====
+    // RECHAZADO
     else if (t.estado === 'Rechazado') {
       html += 
         '<div class="th-item completado activo">' +
@@ -1385,7 +1376,7 @@
         '</div>';
     }
 
-    // ===== ESTADO: APROBADO =====
+    // APROBADO
     else if (t.estado === 'Aprobado') {
       html += 
         '<div class="th-item completado activo">' +
@@ -1417,9 +1408,8 @@
         '</div>';
     }
 
-    // ===== ESTADO: COMPLETADO =====
+    // COMPLETADO
     else if (t.estado === 'Completado') {
-      // Paso Aprobado
       html += 
         '<div class="th-item completado">' +
           '<div class="th-dot completado">✓</div>' +
@@ -1428,7 +1418,6 @@
             '<div class="th-fecha">📅 ' + formatearFecha(t.timestamp) + '</div>' +
           '</div>' +
         '</div>' +
-        // Paso Completado
         '<div class="th-item completado activo">' +
           '<div class="th-dot activo">●</div>' +
           '<div class="th-content">' +
@@ -1455,7 +1444,6 @@
             (duracionTotal ? '<div class="th-duracion">⏱️ Total: ' + duracionTotal + '</div>' : '') +
           '</div>' +
         '</div>' +
-        // Paso Notificación (pendiente siempre)
         '<div class="th-item">' +
           '<div class="th-dot pendiente"></div>' +
           '<div class="th-content">' +
@@ -1465,7 +1453,7 @@
         '</div>';
     }
 
-    // ===== ESTADO: ARCHIVADO =====
+    // ARCHIVADO
     else if (t.estado === 'Archivado') {
       html += 
         '<div class="th-item completado">' +
@@ -1790,31 +1778,21 @@
       });
   }
 
-  function buscarContactoPorNombre(nombreSolicitante) {
-    if (!nombreSolicitante || contactosCache.length === 0) return null;
-    const nombreLower = nombreSolicitante.toLowerCase().trim();
-    for (const c of contactosCache) {
-      if (c.nombre && nombreLower.includes(c.nombre.toLowerCase())) return c;
-      if (c.rol && nombreLower.includes(c.rol.toLowerCase())) return c;
-    }
-    return null;
-  }
-
+  // ===== WHATSAPP (SIN AUTOCOMPLETAR) =====
   function abrirModalWsp() {
     if (!ticketSeleccionado) return;
     const t = ticketSeleccionado;
 
     cargarContactos().then(contactos => {
       const select = document.getElementById('wsp-contacto');
-      if (contactos.length === 0) {
-        select.innerHTML = '<option value="">No hay contactos en la hoja "Contactos"</option>';
+      if (!contactos || contactos.length === 0) {
+        select.innerHTML = '<option value="">⚠️ No hay contactos en la hoja "Contactos"</option>';
       } else {
         select.innerHTML = '<option value="">— Selecciona un contacto —</option>' +
-          contactos.map(c => '<option value="' + c.telefono + '">' + c.nombre + (c.rol ? ' (' + c.rol + ')' : '') + '</option>').join('');
+          contactos.map(c => 
+            '<option value="' + c.telefono + '">' + c.nombre + (c.rol ? ' · ' + c.rol : '') + '</option>'
+          ).join('');
       }
-      const contactoSugerido = buscarContactoPorNombre(t.nombre);
-      if (contactoSugerido) select.value = contactoSugerido.telefono;
-
       document.getElementById('wsp-mensaje').value = generarMensajeWsp(t);
       document.getElementById('modal-wsp').classList.add('activo');
     });
@@ -1848,11 +1826,19 @@
   }
 
   function enviarWhatsApp() {
-    const telefono = document.getElementById('wsp-contacto').value;
+    const selectEl = document.getElementById('wsp-contacto');
+    const telefono = selectEl.value;
     const mensaje = document.getElementById('wsp-mensaje').value;
 
-    if (!telefono) { mostrarToast('⚠️ Selecciona un destinatario', 'error'); return; }
-    if (!mensaje.trim()) { mostrarToast('⚠️ El mensaje está vacío', 'error'); return; }
+    if (!telefono || telefono === '' || telefono === 'undefined') {
+      mostrarToast('⚠️ Selecciona un destinatario válido', 'error');
+      return;
+    }
+
+    if (!mensaje.trim()) {
+      mostrarToast('⚠️ El mensaje está vacío', 'error');
+      return;
+    }
 
     const mensajeNota = extraerNotaDelMensaje(mensaje);
     const notaAnterior = ticketSeleccionado.notasAdmin || '';
@@ -1907,11 +1893,9 @@
       duracionTotal = calcularDuracion(t.timestamp, t.fechaCambio);
     }
 
-    // ===== TIMELINE DEL REPORTE (estilo historial) =====
     let timelineItems = '';
     const esPendiente = t.estado === 'Pendiente';
 
-    // Paso 1: creado
     timelineItems += 
       '<div class="rpt-tl-item completado">' +
         '<div class="rpt-tl-dot ' + (esPendiente ? 'activo' : 'completado') + '">' + (esPendiente ? '●' : '✓') + '</div>' +
@@ -2043,13 +2027,11 @@
         .rpt-progreso-label { font-size: 10px; font-weight: 800; color: #5a6c7d; min-width: 11mm; }
         .rpt-progreso-bar { flex: 1; height: 5px; background: #e8ecf1; border-radius: 3px; overflow: hidden; }
         .rpt-progreso-fill { height: 100%; background: linear-gradient(90deg, #27ae60, #2ecc71); }
-        
-        /* Timeline estilo HISTORIAL en reporte */
         .rpt-timeline { display: flex; flex-direction: column; width: 100%; }
         .rpt-tl-item { display: flex; gap: 3mm; align-items: flex-start; padding: 2mm 0; position: relative; width: 100%; }
         .rpt-tl-item:not(:last-child)::before { content: ''; position: absolute; left: 3.5mm; top: 9mm; bottom: -2mm; width: 0.6mm; background: #e8ecf1; }
         .rpt-tl-item.completado:not(:last-child)::before { background: #27ae60; }
-        .rpt-tl-dot { width: 7.5mm; height: 7.5mm; border-radius: 50%; flex-shrink: 0; margin-top: 0.5mm; z-index: 1; border: 0.8mm solid white; box-shadow: 0 0 0 0.5mm #e8ecf1; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: 800; }
+        .rpt-tl-dot { width: 7.5mm; height: 7.5mm; border-radius: 50%; flex-shrink: 0; margin-top: 0.5mm; z-index: 1; border: 0.8mm solid white; box-shadow: 0 0 0 0.5mm #e8ecf1; display: flex; align-items: center; justify-content: center; font-size: 9px; color: white; font-weight: 800; box-sizing: border-box; }
         .rpt-tl-dot.completado { background: #27ae60; box-shadow: 0 0 0 0.5mm #27ae60; }
         .rpt-tl-dot.activo { background: #3498db; box-shadow: 0 0 0 0.5mm #3498db, 0 0 0 1.5mm rgba(52,152,219,0.2); }
         .rpt-tl-dot.pendiente { background: #f0f3f7; box-shadow: 0 0 0 0.5mm #e0e6ed; }
@@ -2062,7 +2044,6 @@
         .rpt-tl-titulo.activo { color: #3498db; }
         .rpt-tl-titulo.rechazado { color: #e74c3c; }
         .rpt-tl-fecha { font-size: 8.5px; color: #95a5a6; font-weight: 600; }
-        .rpt-tl-fecha.pendiente { color: #bdc3c7; }
         .rpt-tl-detalle { margin-top: 1.5mm; padding: 2mm 2.5mm; border-radius: 5px; border-left: 1mm solid #e0e6ed; background: #f8fafc; font-size: 9px; color: #5a6c7d; line-height: 1.5; width: 100%; }
         .rpt-tl-detalle.aprobado { border-left-color: #27ae60; background: #f0fdf4; color: #065f46; }
         .rpt-tl-detalle.completado { border-left-color: #3498db; background: #eff6ff; color: #1e40af; }
@@ -2134,7 +2115,7 @@
           '</div>' +
         '</div>' +
         '<div class="rpt-seccion">' +
-          '<div class="rpt-seccion-titulo">💼 Nota del Administrador</div>' +
+          '<div class="rpt-seccion-titulo">💼 Nota del administrador</div>' +
           '<div class="rpt-nota-admin">' + notaAdmin + '</div>' +
         '</div>' +
         (t.evidencia ? 
